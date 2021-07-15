@@ -22,12 +22,6 @@ describe('expand-value unit tests', () => {
     });
   });
 
-  describe.only('paren', () => {
-    it('should get a property', () => {
-      assert.equal(expand({ foo: 'correct' }, 'foo(1)'), 'correct');
-    });
-  });
-
   describe('nested properties', () => {
     it('should get a nested property', () => {
       assert.equal(expand({ foo: { bar: 'correct' } }, 'foo.bar'), 'correct');
