@@ -1,0 +1,52 @@
+{
+  "name": "expand-value",
+  "version": "1.0.0",
+  "description": "Expand deeply nested values from an object.",
+  "repository": "jonschlinkert/expand-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/expand-value/issues"
+  },
+  "homepage": "https://github.com/jonschlinkert/expand-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "funding": {
+    "url": "https://github.com/sponsors/jonschlinkert"
+  },
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha",
+    "cover": "nyc --reporter=text --reporter=html mocha"
+  },
+  "engines": {
+    "node": ">=10"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^2.0.0",
+    "mocha": "^8.3.2",
+    "nyc": "^15.1.0"
+  },
+  "keywords": [
+    "expand-value"
+  ],
+  "dependencies": {
+    "is-number": "^7.0.0",
+    "set-value": "^4.0.0",
+    "time-require": "github:jonschlinkert/time-require"
+  },
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}
