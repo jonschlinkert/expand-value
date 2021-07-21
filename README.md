@@ -6,7 +6,7 @@ Please consider following this project's author, [Jon Schlinkert](https://github
 
 ## Install
 
-Install with [npm](https://www.npmjs.com/) (requires [Node.js](https://nodejs.org/en/) >=10):
+Install with [npm](https://www.npmjs.com/) (requires [Node.js](https://nodejs.org/en/) >=14):
 
 ```sh
 $ npm install --save expand-value
@@ -56,6 +56,8 @@ console.log(ast);
 
 Pull requests and stars are always welcome. For bugs and feature requests, [please create an issue](../../issues/new).
 
+Please read the [contributing guide](.github/contributing.md) for advice on opening issues, pull requests, and coding standards.
+
 </details>
 
 <details>
@@ -93,7 +95,7 @@ $ npm install -g verbose/verb#dev verb-generate-readme && verb
 ### License
 
 Copyright © 2021, [Jon Schlinkert](https://github.com/jonschlinkert).
-Released under the MIT License.
+Released under the [MIT License](LICENSE).
 
 ***
 

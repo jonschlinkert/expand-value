@@ -21,7 +21,7 @@
     "cover": "nyc --reporter=text --reporter=html mocha"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=14"
   },
   "dependencies": {
     "is-number": "^7.0.0"

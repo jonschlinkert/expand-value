@@ -1,0 +1,10 @@
+.idea
+*.code-*
+*.DS_Store
+*.sublime-*
+benchmark
+coverage
+node_modules
+npm-debug.log
+tmp
+vendor
