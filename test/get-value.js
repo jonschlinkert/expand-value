@@ -8,7 +8,7 @@ require('mocha');
 const assert = require('assert');
 const get = require('..');
 
-describe('get value:', () => {
+describe('get-value', () => {
   it('should return non-object when given as the first argument', () => {
     assert.deepStrictEqual(get(null), null);
     assert.deepStrictEqual(get('foo'), 'foo');
@@ -193,7 +193,7 @@ describe('get value:', () => {
  * These tests are from the "dot-prop" library
  */
 
-describe('dot-prop tests:', () => {
+describe('dot-prop tests', () => {
   it('should pass dot-prop tests', () => {
     const f1 = { foo: { bar: 1 } };
     assert.deepStrictEqual(get(f1), f1);

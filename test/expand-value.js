@@ -8,7 +8,7 @@ const data = {
   product: { variants: [{ title: 'draft151cm' }, { title: 'element151cm' }] }
 };
 
-describe('expand-value unit tests', () => {
+describe('expand-value', () => {
   describe('symbols', () => {
     it('should get a symbol', () => {
       const foo = Symbol('foo');
@@ -210,12 +210,22 @@ describe('expand-value unit tests', () => {
 
     it('test_length_query (ruby liquid tests)', () => {
       const context = {};
+      context['number'] = 500;
       context['numbers'] = [1, 2, 3, 4];
       context['letters'] = { a: 1, b: 2, c: 3, d: 4 };
-      context['other'] = { 1: 1, 2: 2, 3: 3, 4: 4, length: 1000 };
+      context['other'] = { 1: 1, 2: 2, 3: 3, 4: 4, length: 1000, size: 1000 };
+      context['nil'] = {};
+
+      assert.equal(3, expand(context, 'number.size'));
+      assert.equal(3, expand(context, 'number.length'));
+
+      assert.equal(0, expand(context, 'nil.size'));
+      assert.equal(0, expand(context, 'nil.length'));
 
       assert.equal(4, expand(context, 'numbers.size'));
       assert.equal(4, expand(context, 'numbers.length'));
+
+      assert.equal(1000, expand(context, 'other.size'));
       assert.equal(1000, expand(context, 'other.length'));
 
       context['numbers'] = { 1: 1, 2: 2, 3: 3, 4: 4 };

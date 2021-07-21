@@ -1,7 +1,7 @@
 {
   "name": "expand-value",
   "version": "1.0.0",
-  "description": "Expand deeply nested values from an object.",
+  "description": "Expand deeply nested values from an object, with support for advanced features.",
   "repository": "jonschlinkert/expand-value",
   "bugs": {
     "url": "https://github.com/jonschlinkert/expand-value/issues"
@@ -23,19 +23,35 @@
   "engines": {
     "node": ">=10"
   },
+  "dependencies": {
+    "is-number": "^7.0.0"
+  },
   "devDependencies": {
     "gulp-format-md": "^2.0.0",
     "mocha": "^8.3.2",
     "nyc": "^15.1.0"
   },
   "keywords": [
-    "expand-value"
+    "accessor",
+    "dot-prop",
+    "expand-value",
+    "get",
+    "get-value",
+    "key",
+    "nested",
+    "object",
+    "path",
+    "paths",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "resolve-value",
+    "segment",
+    "set-value",
+    "value",
+    "values"
   ],
-  "dependencies": {
-    "is-number": "^7.0.0",
-    "set-value": "^4.0.0",
-    "time-require": "github:jonschlinkert/time-require"
-  },
   "verb": {
     "toc": false,
     "layout": "default",
@@ -47,6 +63,13 @@
     ],
     "lint": {
       "reflinks": true
-    }
+    },
+    "related": {
+      "list": []
+    },
+    "reflinks": [
+      "dot-prop",
+      "get-value"
+    ]
   }
 }
