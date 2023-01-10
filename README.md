@@ -31,7 +31,7 @@ console.log(expand({ foo: { bar: { baz: 'correct' } } }, 'foo["bar"].baz')); //=
 ## .parse
 
 ```js
-const { parse } = require('expand-value);
+const { parse } = require('expand-value');
 const { ast } = parse('a.b.c');
 
 console.log(ast);
