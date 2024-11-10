@@ -1,7 +1,6 @@
 'use strict';
 
-require('mocha');
-const assert = require('assert').strict;
+const assert = require('node:assert/strict');
 const expand = require('..');
 
 const data = {
@@ -13,6 +12,21 @@ describe('expand-value', () => {
     it('should get a symbol', () => {
       const foo = Symbol('foo');
       assert.equal(expand({ [foo]: 'correct' }, foo), 'correct');
+    });
+
+    it('nested symbol properties', () => {
+      const nested = Symbol('nested');
+      const deep = Symbol('deep');
+
+      const obj = {
+        foo: {
+          [nested]: {
+            [deep]: 'correct'
+          }
+        }
+      };
+
+      assert.equal(expand(obj, `foo[${nested.toString()}][${deep.toString()}]`), 'correct');
     });
   });
 
@@ -233,6 +247,121 @@ describe('expand-value', () => {
 
       context['numbers'] = { 1: 1, 2: 2, 3: 3, 4: 4, size: 1000 };
       assert.equal(1000, expand(context, 'numbers.size'));
+    });
+  });
+
+  describe('edge cases', () => {
+    it('proxy objects', () => {
+      const target = { foo: { bar: 'correct' } };
+      const handler = {
+        get(target, prop) {
+          return prop === 'foo' ? new Proxy(target.foo, handler) : target[prop];
+        }
+      };
+      const proxy = new Proxy(target, handler);
+      assert.equal(expand(proxy, 'foo.bar'), 'correct');
+    });
+
+    it('prototype pollution attempts', () => {
+      const obj = {};
+      // This should either return undefined or throw
+      assert.equal(expand(obj, '__proto__.toString'), undefined);
+      assert.equal(obj.toString, Object.prototype.toString);
+    });
+
+    it('BigInt keys', () => {
+      const obj = {
+        big: {
+          [BigInt(9007199254740991n)]: 'correct'
+        }
+      };
+      // This might fail if BigInt keys aren't handled properly
+      assert.equal(expand(obj, 'big[9007199254740991]'), 'correct');
+    });
+
+    it('revoked proxies gracefully', () => {
+      const target = { foo: 'correct' };
+      const { proxy, revoke } = Proxy.revocable(target, {});
+      const result = expand(proxy, 'foo');
+      assert.equal(result, 'correct');
+      revoke();
+      assert.throws(() => expand(proxy, 'foo'), TypeError);
+    });
+
+    it('objects with no prototype', () => {
+      const obj = Object.create(null);
+      obj.foo = { bar: 'correct' };
+      assert.equal(expand(obj, 'foo.bar'), 'correct');
+    });
+
+    it('getters that throw', () => {
+      const obj = {
+        get throws() {
+          throw new Error('boom');
+        },
+        nested: {
+          get throws() {
+            throw new Error('nested boom');
+          }
+        }
+      };
+
+      assert.throws(() => expand(obj, 'throws'), /boom/);
+      assert.throws(() => expand(obj, 'nested.throws'), /nested boom/);
+    });
+
+    it('very long path segments', () => {
+      const longKey = 'a'.repeat(10000);
+      const obj = { [longKey]: 'correct' };
+      assert.equal(expand(obj, longKey), 'correct');
+    });
+
+    it('array-like objects with negative indices', () => {
+      const obj = {
+        '-1': 'correct',
+        length: 5
+      };
+      // This might fail if array-like object handling isn't robust
+      assert.equal(expand(obj, '[-1]'), 'correct');
+    });
+
+    it('frozen objects', () => {
+      const frozen = Object.freeze({
+        foo: Object.freeze({ bar: 'correct' })
+      });
+      assert.equal(expand(frozen, 'foo.bar'), 'correct');
+    });
+
+    it('non-configurable properties', () => {
+      const obj = {};
+      Object.defineProperty(obj, 'locked', {
+        configurable: false,
+        enumerable: true,
+        value: 'correct'
+      });
+      assert.equal(expand(obj, 'locked'), 'correct');
+    });
+
+    it('sparse arrays', () => {
+      const sparse = [];
+      sparse[0] = 'start';
+      sparse[999999] = 'end';
+      assert.equal(expand(sparse, '999999'), 'end');
+      assert.equal(expand(sparse, '1'), undefined);
+    });
+
+    it('exotic number keys', () => {
+      const obj = {
+        [-0]: 'negative zero',
+        [NaN]: 'not a number',
+        [Infinity]: 'infinity',
+        [-Infinity]: 'negative infinity'
+      };
+
+      assert.equal(expand(obj, '[-0]'), 'negative zero');
+      assert.equal(expand(obj, '[NaN]'), 'not a number');
+      assert.equal(expand(obj, '[Infinity]'), 'infinity');
+      assert.equal(expand(obj, '[-Infinity]'), 'negative infinity');
     });
   });
 });

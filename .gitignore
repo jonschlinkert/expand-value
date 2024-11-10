@@ -10,3 +10,4 @@ tmp
 vendor
 .chat
 *-lock.*
+.env

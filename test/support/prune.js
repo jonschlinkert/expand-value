@@ -12,6 +12,7 @@ const prune = obj => {
   }
 
   const node = {};
+
   for (const [k, v] of Object.entries(obj)) {
     if (isEmpty(v)) continue;
     if (Array.isArray(v)) {

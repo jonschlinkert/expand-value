@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('assert').strict;
+const assert = require('node:assert/strict');
 const prune = require('./support/prune');
 const parse = require('../lib/parse');
 
@@ -46,5 +46,20 @@ describe('parse', () => {
     assert.equal(ast.nodes[2].loc.slice(input), 'b');
     assert.equal(ast.nodes[3].loc.slice(input), '.');
     assert.equal(ast.nodes[4].loc.slice(input), 'c');
+  });
+
+  it('should parse symbols', () => {
+    const input = 'foo[Symbol(nested)][Symbol(deep)]';
+    const { tokens } = parse(input);
+
+    assert.deepStrictEqual(tokens.map(t => ({ ...t })), [
+      { type: 'ident', value: 'foo' },
+      { type: 'left_bracket', value: '[' },
+      { type: 'symbol', value: 'nested', symbol: Symbol.for('nested') },
+      { type: 'right_bracket', value: ']' },
+      { type: 'left_bracket', value: '[' },
+      { type: 'symbol', value: 'deep', symbol: Symbol.for('deep') },
+      { type: 'right_bracket', value: ']' }
+    ]);
   });
 });

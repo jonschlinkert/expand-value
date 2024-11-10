@@ -4,11 +4,10 @@
  * Unit tests from jonschlinkert/get-value
  */
 
-require('mocha');
-const assert = require('assert');
+const assert = require('node:assert/strict');
 const get = require('..');
 
-describe('get-value', () => {
+describe('expand', () => {
   it('should return non-object when given as the first argument', () => {
     assert.deepStrictEqual(get(null), null);
     assert.deepStrictEqual(get('foo'), 'foo');
@@ -66,7 +65,7 @@ describe('get-value', () => {
     const isEnumerable = Object.prototype.propertyIsEnumerable;
     const options = {
       isValid(key, obj) {
-        return isEnumerable.call(obj, key);
+        return obj[key] === undefined || isEnumerable.call(obj, key);
       }
     };
 
