@@ -11,25 +11,40 @@
   "funding": {
     "url": "https://github.com/sponsors/jonschlinkert"
   },
-  "files": [
-    "index.js",
-    "lib"
-  ],
   "license": "MIT",
   "scripts": {
-    "test": "mocha",
-    "cover": "nyc --reporter=text --reporter=html mocha"
+    "eslint": "npx eslint --ext .ts .",
+    "cover": "nyc --reporter=text --reporter=html mocha",
+    "test": "ts-mocha -r esbuild-register 'test/**/*.ts'",
+    "tsup": "npx tsup"
   },
-  "engines": {
-    "node": ">=14"
+  "module": "dist/index.mjs",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
   },
   "dependencies": {
     "is-number": "^7.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.12.7",
+    "esbuild-register": "^3.5.0",
+    "eslint": "^8.57.0",
     "gulp-format-md": "^2.0.0",
-    "mocha": "^8.3.2",
-    "nyc": "^15.1.0"
+    "mocha": "^10.8.2",
+    "nyc": "^17.1.0",
+    "prettier": "^3.3.3",
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5"
   },
   "keywords": [
     "accessor",
