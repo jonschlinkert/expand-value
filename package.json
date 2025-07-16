@@ -1,6 +1,6 @@
 {
   "name": "expand-value",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Get deeply nested values from an object, like dot-prop and get-value, but with support for advanced features like bracket-notation and more.",
   "repository": "jonschlinkert/expand-value",
   "bugs": {
