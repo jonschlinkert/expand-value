@@ -1,8 +1,7 @@
-'use strict';
 
-const assert = require('node:assert/strict');
-const prune = require('./support/prune');
-const parse = require('../lib/parse');
+import assert from 'node:assert/strict';
+import { prune } from './support/prune';
+import { parse } from '~/parse';
 
 describe('parse', () => {
   it('should get a node', () => {
@@ -51,8 +50,19 @@ describe('parse', () => {
   it('should parse symbols', () => {
     const input = 'foo[Symbol(nested)][Symbol(deep)]';
     const { tokens } = parse(input);
+    const actual = [];
 
-    assert.deepStrictEqual(tokens.map(t => ({ ...t })), [
+    for (const token of tokens) {
+      for (const [k, v] of Object.entries(token)) {
+        if (v === undefined) {
+          delete token[k];
+        }
+      }
+
+      actual.push({ ...token });
+    }
+
+    assert.deepEqual(actual, [
       { type: 'ident', value: 'foo' },
       { type: 'left_bracket', value: '[' },
       { type: 'symbol', value: 'nested', symbol: Symbol.for('nested') },

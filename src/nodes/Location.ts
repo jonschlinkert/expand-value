@@ -1,33 +1,41 @@
-'use strict';
+export class Position {
+  index: number;
+  line: number;
+  col: number;
 
-class Position {
-  constructor(loc) {
+  constructor(loc: { index: number; line: number; col: number }) {
     this.index = loc.index;
     this.line = loc.line;
     this.col = loc.col;
   }
 }
 
-class Location {
-  constructor(start, end) {
+export class Location {
+  start: Position;
+  end: Position;
+
+  constructor(start: Position, end: Position) {
     this.start = start;
     this.end = end;
   }
-  slice(input) {
+
+  slice(input: string): string {
     return input.slice(...this.range);
   }
-  get range() {
+
+  get range(): [number, number] {
     return [this.start.index, this.end.index];
   }
-  get lines() {
+
+  get lines(): [number, number] {
     return [this.start.line, this.end.line];
   }
 }
 
-const location = loc => {
+export const location = (loc: { index: number; line: number; col: number }) => {
   const start = new Position(loc);
 
-  return node => {
+  return (node: any) => {
     node.loc = new Location(start, new Position(loc));
     return node;
   };
@@ -36,4 +44,5 @@ const location = loc => {
 location.Position = Position;
 location.Location = Location;
 location.location = location;
-module.exports = location;
+
+export default Location;

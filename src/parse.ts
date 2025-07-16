@@ -1,10 +1,8 @@
-'use strict';
-
-const location = require('./nodes/Location');
-const Block = require('./nodes/Block');
-const Token = require('./nodes/Token');
-const Node = require('./nodes/Node');
-const utils = require('./utils');
+import { location } from './nodes/Location';
+import { Block } from './nodes/Block';
+import { Token } from './nodes/Token';
+import { Node } from './nodes/Node';
+import * as utils from './utils';
 
 const QUOTED_STRING = /^(['"`])((?:\\.|(?!\1)[\s\S])*?)(\1)/;
 const IDENT_DOT = /^([a-zA-Z_][-a-zA-Z0-9_.]*(?<!\.))/;
@@ -12,10 +10,22 @@ const IDENT = /^([a-zA-Z_$][a-zA-Z0-9_$-]*(?<!-))/;
 const NUMBER = /^(-?[0-9]+(?:\.[0-9]+)?|-?Infinity|NaN)/;
 const SYMBOL = /^Symbol\((.*?)\)/;
 
-const parse = (input = '', options) => {
+interface ParseOptions {
+  separator?: string;
+  newlines?: boolean;
+}
+
+interface Location {
+  index: number;
+  line: number;
+  col: number;
+  row: number;
+}
+
+export const parse = (input = '', options: ParseOptions = {}) => {
   if (!utils.isObject(options)) options = {};
 
-  const loc = { index: 0, line: 1, col: 0 };
+  const loc: Location = { index: 0, line: 1, col: 0, row: 1 };
   let pos = location(loc);
 
   const str = String(input);
@@ -25,12 +35,12 @@ const parse = (input = '', options) => {
   const stack = [ast];
   const stash = [];
 
-  const tokens = [];
+  const tokens: Token[] = [];
   let remaining = str;
   let block = ast;
-  let token;
-  let match;
-  let prev;
+  let token: Token | undefined;
+  let match: RegExpExecArray | null;
+  let prev: Node | undefined;
 
   let separator = /^\./;
   let IDENTITY = IDENT;
@@ -40,21 +50,21 @@ const parse = (input = '', options) => {
   }
 
   const eos = () => remaining === undefined || remaining === '';
-  const scan = (regex, type = 'text') => {
+  const scan = (regex: RegExp, type: string = 'text') => {
     if ((match = regex.exec(remaining))) {
       consume(match[0]);
       return new Token({ type, value: match[0], match });
     }
   };
 
-  const updateLocation = (value, len) => {
+  const updateLocation = (value: string, len: number) => {
     const i = value.lastIndexOf('\n');
     loc.index += len;
-    loc.col = ~i ? len - i : (loc.col + len);
+    loc.col = ~i ? len - i : loc.col + len;
     loc.row += Math.max(0, value.split('\n').length - 1);
   };
 
-  const consume = (value, len = value.length) => {
+  const consume = (value: string, len: number = value.length) => {
     updateLocation(value, len);
     remaining = remaining.slice(len);
     return value;
@@ -62,15 +72,15 @@ const parse = (input = '', options) => {
 
   const drop = () => {
     if (stash.length) {
-      block.push(stash.shift());
+      block.push(stash.shift() as Node);
     }
   };
 
-  const shouldPush = node => {
+  const shouldPush = (node: Node) => {
     return node.type !== 'newline' || options.newlines !== false;
   };
 
-  const push = node => {
+  const push = (node: Node) => {
     pos(node);
 
     if (prev?.type === 'ident' && node.type === 'ident') {
@@ -104,14 +114,13 @@ const parse = (input = '', options) => {
     return parent;
   };
 
+  // eslint-disable-next-line complexity
   const advance = () => {
-
     /**
      * Escaped text
      */
 
     if ((token = scan(/^\\+/, 'escaped'))) {
-
       if (token.value.length % 2 === 1) {
         token.value += consume(remaining[0]);
       }
@@ -246,11 +255,9 @@ const parse = (input = '', options) => {
      * Text (anything not matched by previous scanners)
      */
 
-    push(new Node(scan(/^([-_a-zA-Z0-9?!;.~@#^&*]+|.)/, 'text')));
+    push(new Node(scan(/^(.)/, 'text')));
   };
 
   while (!eos()) advance();
   return { ast, tokens, output: ast.output };
 };
-
-module.exports = parse;

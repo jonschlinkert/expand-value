@@ -1,7 +1,6 @@
-'use strict';
 
-const assert = require('node:assert/strict');
-const expand = require('..');
+import assert from 'node:assert/strict';
+import { expand } from '~/expand';
 
 describe('security', () => {
   describe('prototype pollution', () => {
@@ -9,14 +8,14 @@ describe('security', () => {
       const obj = {};
       assert.equal(expand(obj, '__proto__.polluted'), undefined);
       assert.equal(obj.polluted, undefined);
-      assert.equal(({}).polluted, undefined);
+      assert.equal({}.polluted, undefined);
     });
 
     it('should prevent accessing prototype via constructor', () => {
       const obj = {};
       assert.equal(expand(obj, 'constructor.prototype.polluted'), undefined);
       assert.equal(obj.polluted, undefined);
-      assert.equal(({}).polluted, undefined);
+      assert.equal({}.polluted, undefined);
     });
 
     it('should prevent prototype pollution in nested objects', () => {
@@ -24,7 +23,7 @@ describe('security', () => {
       assert.equal(expand(obj, 'nested.__proto__.polluted'), undefined);
       assert.equal(expand(obj, 'nested.constructor.prototype.polluted'), undefined);
       assert.equal(obj.nested.polluted, undefined);
-      assert.equal(({}).polluted, undefined);
+      assert.equal({}.polluted, undefined);
     });
   });
 
@@ -78,7 +77,7 @@ describe('security', () => {
     it('should handle inherited properties safely with isValid', () => {
       class Base {
         constructor() {
-          this.prop = { value: 'base' };  // value is an own property of this.prop
+          this.prop = { value: 'base' }; // value is an own property of this.prop
         }
       }
 
@@ -95,15 +94,15 @@ describe('security', () => {
 
       // To demonstrate property inheritance, let's add a test with an actual inherited property
       class Parent {
-        inherited = 'parent value'
+        inherited = 'parent value';
       }
 
       const obj = Object.create(new Parent());
       obj.own = 'own value';
 
-      assert.equal(expand(obj, 'own', options), 'own value');      // own property works
-      assert.equal(expand(obj, 'inherited', options), undefined);  // inherited property is blocked
-      assert.equal(expand(obj, 'inherited'), 'parent value');      // inherited works without options
+      assert.equal(expand(obj, 'own', options), 'own value'); // own property works
+      assert.equal(expand(obj, 'inherited', options), undefined); // inherited property is blocked
+      assert.equal(expand(obj, 'inherited'), 'parent value'); // inherited works without options
     });
   });
 

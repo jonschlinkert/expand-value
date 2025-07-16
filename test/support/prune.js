@@ -1,9 +1,8 @@
-'use strict';
 
 const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isEmpty = v => v === undefined || v === null || (Array.isArray(v) && v.length === 0);
 
-const prune = obj => {
+export const prune = obj => {
   if (!obj) return obj;
   if (typeof obj !== 'object') return obj;
 
@@ -27,4 +26,3 @@ const prune = obj => {
   return node;
 };
 
-module.exports = prune;

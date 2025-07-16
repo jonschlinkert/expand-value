@@ -1,18 +1,31 @@
-'use strict';
+import { isObject, isSafeKey, unquote } from '~/utils';
+import { expand } from '~/expand';
+import * as helpers from '~/helpers';
 
-const helpers = require('./helpers');
-const { isObject, isSafeKey, unquote } = require('./utils');
+export interface Node {
+  type: string;
+  value?: string;
+  nodes?: Node[];
+  skip?: boolean;
+  symbol?: symbol;
+  parent?: Node;
+  siblings?: Node[];
+  match?: string[];
+}
 
-const compile = (ast, data = {}, options = {}) => {
-  // This is required here since both resolve and compile require one another
-  const expand = require('./expand');
+export interface Options {
+  helpers?: Record<string, Function>;
+  strict?: boolean;
+}
+
+export const compile = (ast: Node, data: Record<string, any> = {}, options: Options = {}): any => {
   const orig = { ...data };
-  let context = orig;
-  let prev = context;
-
+  let context: any = orig;
+  let prev: any = context;
   const fns = options.helpers ? { ...helpers, ...options.helpers } : helpers;
 
-  const resolve = node => {
+  // eslint-disable-next-line complexity
+  const resolve = (node: Node): void => {
     if (node.skip || node.type === 'separator') {
       return;
     }
@@ -22,28 +35,27 @@ const compile = (ast, data = {}, options = {}) => {
     }
 
     if (node.type === 'paren') {
-      const args = [];
+      const args: any[] = [];
 
-      for (let i = 1; i < node.nodes.length - 1; i++) {
-        const child = node.nodes[i];
+      for (let i = 1; i < node.nodes!.length - 1; i++) {
+        const child = node.nodes![i];
 
-        if (child.type === 'integer') {
-          args.push(Number(child.value));
-          continue;
-        }
-
-        if (child.type === 'quoted') {
-          args.push(unquote(child.value));
-          continue;
-        }
-
-        if (child.type === 'symbol') {
-          args.push(Symbol.for(child.value));
-          continue;
-        }
-
-        if (child.type === 'ident') {
-          args.push(expand(context, child.value));
+        switch (child.type) {
+          case 'integer':
+            args.push(Number(child.value));
+            break;
+          case 'quoted':
+            args.push(unquote(child.value!));
+            break;
+          case 'symbol':
+            args.push(Symbol.for(child.value!));
+            break;
+          case 'ident':
+            args.push(expand(context, child.value!));
+            break;
+          default: {
+            break;
+          }
         }
       }
 
@@ -60,36 +72,36 @@ const compile = (ast, data = {}, options = {}) => {
       prev = context;
 
       for (const symbol of Object.getOwnPropertySymbols(context)) {
-        if (symbol === node.symbol || symbol.toString() === node.symbol.toString()) {
+        if (symbol === node.symbol || symbol.toString() === node.symbol!.toString()) {
           context = context[symbol];
           return;
         }
       }
 
-      const symbol = node.symbol || Symbol.for(node.value);
+      const symbol = node.symbol || Symbol.for(node.value!);
       context = context[symbol];
       return;
     }
 
     if (node.type === 'ident') {
-      if (!isSafeKey(node.value)) {
+      if (!isSafeKey(node.value!)) {
         context = undefined;
         return;
       }
 
-      let value = node.value;
+      let value = node.value!;
 
-      if (node.parent.type === 'bracket') {
+      if (node.parent?.type === 'bracket') {
         let temp = orig;
         value = expand(temp, value);
 
         if (isObject(value)) {
-          const sibs = node.siblings.filter(n => ['ident', 'quoted', 'symbol'].includes(n.type));
+          const sibs = node.siblings!.filter(n => ['ident', 'quoted', 'symbol'].includes(n.type));
           let index = sibs.indexOf(node) + 1;
           let next = sibs[index];
 
           while (isObject(value) && isObject(next) && temp) {
-            const key = next.value;
+            const key = next.value!;
             value = expand(value, key);
             next.skip = true;
             temp = expand(temp, value);
@@ -131,7 +143,7 @@ const compile = (ast, data = {}, options = {}) => {
 
     if (node.type === 'quoted') {
       prev = context;
-      context = context[node.match[2]];
+      context = context[node.match![2]];
     }
   };
 
@@ -148,4 +160,4 @@ const compile = (ast, data = {}, options = {}) => {
   return context;
 };
 
-module.exports = compile;
+export default compile;

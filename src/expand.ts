@@ -1,13 +1,12 @@
-'use strict';
-
-const compile = require('./compile');
-const parse = require('./parse');
-const { isObject, isValidObject, isValid } = require('./utils');
+import { compile } from '~/compile';
+import { parse } from '~/parse';
+import { isObject, isValidObject, isValid } from '~/utils';
 
 // const METHOD_REGEX = /([["()]|\.(?:blank|empty|first|last|length|nil|size)(\.|$))/;
 const METHOD_REGEX = /(\[[^[\]]+?\]|\.(?:blank|empty|first|last|length|nil|size)(\.|$))/;
 
-const expand = (data, path, options = {}) => {
+// eslint-disable-next-line complexity
+export const expand = (data, path, options = {}) => {
   if (!isObject(options)) {
     options = { default: options };
   }
@@ -94,6 +93,7 @@ const expand = (data, path, options = {}) => {
       }
 
       let val = ctx[key];
+
       if (val === undefined && helper) {
         val = helper(ctx);
       }
@@ -165,4 +165,4 @@ const expand = (data, path, options = {}) => {
 
 expand.parse = parse;
 expand.compile = compile;
-module.exports = expand;
+export default expand;

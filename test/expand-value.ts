@@ -1,7 +1,7 @@
-'use strict';
+/* eslint-disable dot-notation */
 
-const assert = require('node:assert/strict');
-const expand = require('..');
+import assert from 'node:assert/strict';
+import { expand } from '~/expand';
 
 const data = {
   product: { variants: [{ title: 'draft151cm' }, { title: 'element151cm' }] }

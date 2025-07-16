@@ -1,7 +1,6 @@
-'use strict';
 
-const assert = require('node:assert/strict');
-const expand = require('..');
+import assert from 'node:assert/strict';
+import { expand } from '~/expand';
 
 describe('edge-cases', () => {
   describe('long paths', () => {

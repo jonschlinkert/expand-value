@@ -50,7 +50,7 @@ module.exports = {
     'curly': [1, 'multi-line', 'consistent'],
     'default-case': 1,
     'dot-location': [1, 'property'],
-    'dot-notation': 1,
+    'dot-notation': 0,
     'eol-last': 1,
     'eqeqeq': [1, 'allow-null'],
     'for-direction': 1,
@@ -216,10 +216,10 @@ module.exports = {
     '.config',
     '.vscode',
     '.git',
-    '**/node_modules/**',
+    'node_modules',
     'build',
     'dist',
-    // 'tmp',
+    'tmp',
     'temp'
   ]
 };

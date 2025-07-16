@@ -1,7 +1,6 @@
-'use strict';
 
-const assert = require('node:assert/strict');
-const expand = require('..');
+import assert from 'node:assert/strict';
+import { expand } from '~/expand';
 
 describe('helpers', () => {
   describe('.first helper', () => {
@@ -203,6 +202,7 @@ describe('helpers', () => {
       assert.equal(expand(obj, 'users.first.friends.first'), undefined);
       assert.equal(expand(obj, 'users.first.friends.size'), 0);
       assert.equal(expand(obj, 'users.first.friends.last'), undefined);
+      assert.equal(expand(obj, 'users.last.friends.last'), 'eve');
     });
 
     it('should handle nested collections', () => {

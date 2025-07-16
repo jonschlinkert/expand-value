@@ -1,13 +1,6 @@
-'use strict';
+import { getGraphemes, isObject, size as utilsSize } from '~/utils';
 
-const { isObject, size } = require('./utils');
-
-const getSegments = (input, language = 'en', granularity) => {
-  const segmenter = new Intl.Segmenter(language, { granularity, localeMatcher: 'best fit' });
-  return Array.from(segmenter.segment(input));
-};
-
-exports.first = value => {
+export const first = value => {
   if (!value) return;
 
   if (value instanceof Set || value instanceof Map) {
@@ -23,12 +16,14 @@ exports.first = value => {
   }
 
   if (typeof value === 'string') {
-    const segments = getSegments(value);
-    return segments[0].segment;
+    const graphemes = getGraphemes(value.slice(0, 20));
+    return graphemes[0];
   }
+
+  return value[0];
 };
 
-exports.last = value => {
+export const last = value => {
   if (!value) return;
 
   if (value instanceof Set || value instanceof Map) {
@@ -44,12 +39,14 @@ exports.last = value => {
   }
 
   if (typeof value === 'string') {
-    const segments = getSegments(value);
-    return segments[segments.length - 1].segment;
+    const graphemes = getGraphemes(value.slice(-20));
+    return graphemes[graphemes.length - 1];
   }
+
+  return value[value.length - 1];
 };
 
-exports.length = value => {
+export const length = value => {
   if (typeof value?.length === 'number') {
     return value.length;
   }
@@ -61,7 +58,7 @@ exports.length = value => {
   return size(value);
 };
 
-exports.size = value => {
+export const size = value => {
   if (value === null) {
     return 1;
   }
@@ -74,5 +71,5 @@ exports.size = value => {
     return value.length;
   }
 
-  return size(value);
+  return utilsSize(value);
 };

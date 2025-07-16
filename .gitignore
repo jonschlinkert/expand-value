@@ -11,3 +11,5 @@ vendor
 .chat
 *-lock.*
 .env
+.nyc_output
+dist
