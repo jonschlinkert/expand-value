@@ -6,7 +6,7 @@ Please consider following this project's author, [Jon Schlinkert](https://github
 
 ## Install
 
-Install with [npm](https://www.npmjs.com/):
+Install with [npm](https://www.npmjs.com/) (requires [Node.js](https://nodejs.org/en/) >=14):
 
 ```sh
 $ npm install --save expand-value
@@ -31,7 +31,7 @@ console.log(expand({ foo: { bar: { baz: 'correct' } } }, 'foo["bar"].baz')); //=
 ## .parse
 
 ```js
-const { parse } = require('expand-value);
+const { parse } = require('expand-value');
 const { ast } = parse('a.b.c');
 
 console.log(ast);
