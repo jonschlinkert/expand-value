@@ -11,12 +11,13 @@ describe('edge-cases', () => {
       // Create deeply nested object
       const obj = { };
       let current = obj;
+
       for (let i = 0; i < segments.length - 1; i++) {
         current[segments[i]] = {};
         current = current[segments[i]];
       }
-      current[segments[segments.length - 1]] = 'found';
 
+      current[segments[segments.length - 1]] = 'found';
       assert.equal(expand(obj, longPath), 'found');
     });
   });

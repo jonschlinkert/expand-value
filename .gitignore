@@ -1,15 +1,32 @@
+.env*
 .idea
-*.code-*
-*.DS_Store
+.nyc_output
 *.sublime-*
 benchmark
+
+# Build & Deployments
+build
+dist
+public
+
+# Common Files
+*.log
+*.code-*
+*-lock.*
+*.lock
+pnpm-*.*
+.DS_Store
+Thumbs.db
 coverage
+desktop.ini
 node_modules
-npm-debug.log
+temp
 tmp
 vendor
+
+# AI
 .chat
-*-lock.*
-.env
-.nyc_output
-dist
+.smith
+.automations
+*.generated*
+*.updated*

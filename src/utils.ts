@@ -1,4 +1,5 @@
 import isNumber from 'is-number';
+import { Segmenter } from 'intl-segmenter';
 export { isNumber };
 
 const { defineProperty } = Reflect;
@@ -72,7 +73,7 @@ export const findSafeBreakPoint = input => {
 };
 
 export const getSegments = (input, language = 'en', granularity) => {
-  const segmenter = new Intl.Segmenter(language, { granularity, localeMatcher: 'best fit' });
+  const segmenter = new Segmenter(language, { granularity, localeMatcher: 'best fit' });
   return Array.from(segmenter.segment(input)).map(segment => segment.segment);
 };
 

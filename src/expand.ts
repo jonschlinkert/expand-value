@@ -165,4 +165,6 @@ export const expand = (data, path, options = {}) => {
 
 expand.parse = parse;
 expand.compile = compile;
+
+export { parse, compile };
 export default expand;
