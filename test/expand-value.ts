@@ -83,6 +83,13 @@ describe('expand-value', () => {
     it('should expand foo["bar"].baz', () => {
       assert.equal(expand({ foo: { bar: { baz: 'correct' } } }, 'foo["bar"].baz'), 'correct');
     });
+
+    it('should expand ranges in square brackets', () => {
+      const data = { items: ['a', 'b', 'c', 'd', 'e'] };
+      assert.deepEqual(expand(data, 'items[1..3]'), ['b', 'c', 'd']);
+      assert.deepEqual(expand(data, 'items[0..4]'), ['a', 'b', 'c', 'd', 'e']);
+      assert.deepEqual(expand(data, 'items[2..2]'), ['c']);
+    });
   });
 
   describe('variable accessors', () => {

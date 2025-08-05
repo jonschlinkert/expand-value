@@ -136,6 +136,22 @@ export const compile = (ast: Node, data: Record<string, any> = {}, options: Opti
     }
 
     if (node.type === 'integer' || node.type === 'number') {
+      if (node.parent.type === 'bracket') {
+        const index = node.parent.nodes.indexOf(node);
+        const next = node.parent.nodes[index + 1];
+        const after = node.parent.nodes[index + 2];
+
+        if (next?.type === 'range' && (after?.type === 'integer' || after?.type === 'number')) {
+          next.skip = true;
+          after.skip = true;
+          const start = Number(node.value);
+          const end = Number(after.value);
+          const range = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+          context = range.map(i => context[i]);
+          return;
+        }
+      }
+
       prev = context;
       context = context[Number(node.value)];
       return;

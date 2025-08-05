@@ -8,6 +8,7 @@ const QUOTED_STRING = /^(['"`])((?:\\.|(?!\1)[\s\S])*?)(\1)/;
 const IDENT_DOT = /^([a-zA-Z_][-a-zA-Z0-9_.]*(?<!\.))/;
 const IDENT = /^([a-zA-Z_$][a-zA-Z0-9_$-]*(?<!-))/;
 const NUMBER = /^(-?[0-9]+(?:\.[0-9]+)?|-?Infinity|NaN)/;
+const RANGE = /^\.\.(?=[0-9a-z])/i;
 const SYMBOL = /^Symbol\((.*?)\)/;
 
 interface ParseOptions {
@@ -190,7 +191,7 @@ export const parse = (input = '', options: ParseOptions = {}) => {
      * Ranges
      */
 
-    if (block.type === 'paren' && (token = scan(/^\.\./, 'dots'))) {
+    if (block.type === 'bracket' && (token = scan(RANGE, 'range'))) {
       push(new Node(token));
       return;
     }
