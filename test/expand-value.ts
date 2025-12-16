@@ -198,6 +198,83 @@ describe('expand-value', () => {
     });
   });
 
+  describe('array access', () => {
+    it('should get array element by index', () => {
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[0]'), 'a');
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[1]'), 'b');
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[2]'), 'c');
+    });
+
+    it('should get array element by variable index', () => {
+      const context = { items: ['a', 'b', 'c'], index: 1 };
+      assert.equal(expand(context, 'items[index]'), 'b');
+    });
+
+    it('should get array element by computed index', () => {
+      const context = { items: ['a', 'b', 'c'], index: 1 };
+      assert.equal(expand(context, 'items[index + 1]'), 'c');
+    });
+
+    it('should get array element by nested variable index', () => {
+      const context = { items: ['a', 'b', 'c'], nested: { index: 0 } };
+      assert.equal(expand(context, 'items[nested.index]'), 'a');
+    });
+
+    it('should get array element by nested computed index', () => {
+      const context = { items: ['a', 'b', 'c'], nested: { index: 1 } };
+      assert.equal(expand(context, 'items[nested.index + 1]'), 'c');
+    });
+
+    it('should get end element by index', () => {
+      const context = { items: ['a', 'b', 'c'] };
+      assert.equal(expand(context, 'items[2]'), 'c');
+    });
+
+    it('should get end element by negative index', () => {
+      const context = { items: ['a', 'b', 'c'] };
+      assert.equal(expand(context, 'items[items.length - 1]'), 'c');
+      assert.equal(expand(context, 'items[items.length - 2]'), 'b');
+      assert.equal(expand(context, 'items[items.length - 3]'), 'a');
+    });
+
+    it('should get end element by computed index', () => {
+      const context = { items: ['a', 'b', 'c'], end: 1 };
+      assert.equal(expand(context, 'items[items.length - end]'), 'c');
+    });
+
+    it('should get first element by computed index', () => {
+      const context = { items: ['a', 'b', 'c'], start: 2 };
+      assert.equal(expand(context, 'items[items.length - start]'), 'b');
+    });
+  });
+
+  describe('array access failures', () => {
+    it('should return undefined for out-of-bounds access', () => {
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[5]'), undefined);
+    });
+
+    it('should return undefined for negative indices', () => {
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[-1]'), undefined);
+    });
+
+    it('should return undefined for non-integer indices', () => {
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[1.5]'), undefined);
+    });
+
+    it('should return undefined for non-numeric indices', () => {
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[foo]'), undefined);
+    });
+
+    it('should return undefined for empty brackets', () => {
+      assert.equal(expand({ items: ['a', 'b', 'c'] }, 'items[]'), undefined);
+    });
+
+    it('should return undefined for out-of-bounds access with variable index', () => {
+      const context = { items: ['a', 'b', 'c'], index: 5 };
+      assert.equal(expand(context, 'items[index]'), undefined);
+    });
+  });
+
   describe('ruby tests', () => {
     it('test_variables (ruby liquid tests)', () => {
       const context = {};

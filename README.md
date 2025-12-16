@@ -24,7 +24,7 @@ Examples for using the main export (the `expand` function).
 
 Access nested properties using dot notation.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { user: { name: 'Brian', username: 'doowb' }, key: 'username' };
@@ -37,7 +37,7 @@ console.log(expand(data, 'user.username')); //=> 'doowb'
 
 Access properties using bracket notation with string keys.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { user: { name: 'Brian', username: 'doowb' }, key: 'username' };
@@ -46,23 +46,39 @@ console.log(expand(data, 'user["name"]')); //=> 'Brian'
 console.log(expand(data, 'user["username"]')); //=> 'doowb'
 ```
 
-### Dynamic Property Access
+### Computed Property Access
 
 Use bracket notation with variables to access properties dynamically.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
-const data = { user: { name: 'Brian', username: 'doowb' }, key: 'username' };
+const data = {
+  user: { name: 'Brian', username: 'doowb' },
+  key: 'username'
+};
 
 console.log(expand(data, 'user[key]')); //=> 'doowb'
+```
+
+Get array values using computed property names.
+
+```ts
+import expand from 'expand-value';
+
+const data = {
+  items: ['apple', 'banana', 'cherry'],
+  index: 2
+};
+
+console.log(expand(data, 'items[index]')); //=> 'cherry'
 ```
 
 ### Mixed Notation
 
 Combine dot notation and bracket notation in the same path.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { foo: { bar: { baz: 'correct' } } };
@@ -74,7 +90,7 @@ console.log(expand(data, 'foo["bar"].baz')); //=> 'correct'
 
 Access array elements using numeric indices.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { items: ['first', 'second', 'third'] };
@@ -84,11 +100,22 @@ console.log(expand(data, 'items[1]')); //=> 'second'
 console.log(expand(data, 'items.2')); //=> 'third'
 ```
 
+Access array elements using basic math expressions.
+
+```ts
+import expand from 'expand-value';
+
+const data = { items: ['first', 'second', 'third', 'fourth'] };
+
+console.log(expand(data, 'items[items.length - 1]')); //=> 'fourth'
+console.log(expand(data, 'items[1 + 1]')); //=> 'third'
+```
+
 ### Negative Array Indices
 
 Access array elements from the end using negative indices.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { items: ['first', 'second', 'third'] };
@@ -101,7 +128,7 @@ console.log(expand(data, 'items[-2]')); //=> 'second'
 
 Handle special JavaScript number values like NaN and Infinity.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = {
@@ -121,7 +148,7 @@ console.log(expand(data, '-0')); //=> 'negative zero'
 
 Access properties defined with Symbol keys.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const symbolKey = Symbol('mySymbol');
@@ -134,7 +161,7 @@ console.log(expand(data, 'Symbol(mySymbol)')); //=> 'symbol value'
 
 Handle escaped characters in property names.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { 'prop.with.dots': 'escaped value' };
@@ -146,7 +173,7 @@ console.log(expand(data, 'prop\\.with\\.dots')); //=> 'escaped value'
 
 Execute functions found in the property path.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = {
@@ -165,7 +192,7 @@ console.log(expand(data, 'user.getName')); //=> 'Brian'
 
 Use custom helper functions to process values.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { items: ['apple', 'banana', 'cherry'] };
@@ -184,7 +211,7 @@ console.log(expand(data, 'items.last', options)); //=> 'cherry'
 
 Provide fallback values when properties don't exist.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { user: { name: 'Brian' } };
@@ -197,7 +224,7 @@ console.log(expand(data, 'user.missing', { default: 'fallback' })); //=> 'fallba
 
 Enable strict mode to throw errors for undefined variables.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { user: { name: 'Brian' } };
@@ -213,7 +240,7 @@ try {
 
 Use custom separators instead of dots for property access.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { user: { profile: { email: 'brian@example.com' } } };
@@ -225,7 +252,7 @@ console.log(expand(data, 'user->profile->email', { separator: '->' })); //=> 'br
 
 Use custom validation to control which properties can be accessed.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = {
@@ -245,7 +272,7 @@ console.log(expand(data, 'private.secret', options)); //=> undefined
 
 Use parentheses with range expressions for complex operations.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { items: ['a', 'b', 'c', 'd', 'e'] };
@@ -257,7 +284,7 @@ console.log(expand(data, 'items[1..3]')); //=> ['b', 'c', 'd']
 
 Access properties with spaces or special characters using quoted strings.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = { 'property with spaces': 'value', 'special-chars!': 'works' };
@@ -270,7 +297,7 @@ console.log(expand(data, "'special-chars!'")); //=> 'works'
 
 Resolve complex property chains with multiple levels of indirection.
 
-```javascript
+```ts
 import expand from 'expand-value';
 
 const data = {
@@ -352,7 +379,7 @@ You might also be interested in these projects:
 
 | **Commits** | **Contributor** |  
 | --- | --- |  
-| 14 | [jonschlinkert](https://github.com/jonschlinkert) |  
+| 16 | [jonschlinkert](https://github.com/jonschlinkert) |  
 | 1  | [aykutkardas](https://github.com/aykutkardas) |  
 
 ### Author
@@ -370,4 +397,4 @@ Released under the [MIT License](LICENSE).
 
 ***
 
-_This file was generated by [verb-generate-readme](https://github.com/verbose/verb-generate-readme), v0.8.0, on August 05, 2025._
+_This file was generated by [verb-generate-readme](https://github.com/verbose/verb-generate-readme), v0.8.0, on December 15, 2025._

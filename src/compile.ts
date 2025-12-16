@@ -1,4 +1,5 @@
 import { isObject, isSafeKey, unquote } from '~/utils';
+import { evaluate } from '~/expression';
 import { expand } from '~/expand';
 import * as helpers from '~/helpers';
 
@@ -64,6 +65,23 @@ export const compile = (ast: Node, data: Record<string, any> = {}, options: Opti
     }
 
     if (node.nodes) {
+      if (node.type !== 'root') {
+        const inner = node.nodes.slice(1, -1);
+
+        if (inner.some(n => n.value === ' ')) {
+          try {
+            const text = inner.map(n => n.value).join('');
+            resolve({ type: 'ident', value: evaluate(text, data) });
+            return;
+          } catch {}
+        }
+
+        if (inner.length === 1 && inner[0].type === 'ident') {
+          resolve(inner[0]);
+          return;
+        }
+      }
+
       node.nodes.forEach(child => resolve(child));
       return;
     }
@@ -94,6 +112,17 @@ export const compile = (ast: Node, data: Record<string, any> = {}, options: Opti
       if (node.parent?.type === 'bracket') {
         let temp = orig;
         value = expand(temp, value);
+
+        if (value === undefined) {
+          context = undefined;
+          return;
+        }
+
+        if (typeof value === 'number') {
+          prev = context;
+          context = context[value];
+          return;
+        }
 
         if (isObject(value)) {
           const sibs = node.siblings!.filter(n => ['ident', 'quoted', 'symbol'].includes(n.type));
