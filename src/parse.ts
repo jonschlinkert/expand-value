@@ -115,7 +115,6 @@ export const parse = (input = '', options: ParseOptions = {}) => {
     return parent;
   };
 
-  // eslint-disable-next-line complexity
   const advance = () => {
     /**
      * Escaped text

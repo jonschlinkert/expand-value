@@ -1,5 +1,5 @@
 import isNumber from 'is-number';
-import { Segmenter } from 'intl-segmenter';
+import { Segmenter } from 'intl-segmenter'; // optimized version of Intl.Segmenter
 export { isNumber };
 
 const { defineProperty } = Reflect;
@@ -99,14 +99,3 @@ export const getGraphemes = (input, language = 'en', maxChunkLength = 500) => {
 
   return graphemes;
 };
-
-// // // Example usage
-// // const text = "Hello 👨‍👩‍👧‍👦 world! 🌍✨" + "a".repeat(1000);
-// // console.log(getGraphemes(text));
-
-// const start = new Date();
-// // console.log(getGraphemes('a'.repeat(1_000_000)));
-// const text = "Hello 👨‍👩‍👧‍👦 world! 🌍✨ a".repeat(1_000_000);
-// console.log(Buffer.from(text).length.toLocaleString(), 'characters');
-// console.log(getGraphemes(text));
-// console.log(`Time: ${((new Date() - start) / 1000).toFixed(2)}s`);

@@ -13,9 +13,11 @@
   },
   "license": "MIT",
   "scripts": {
+    "clean": "rm -rf dist",
     "cover": "nyc --all --reporter=text --reporter=html --include=src npm run test",
-    "test": "ts-mocha -r esbuild-register 'test/*.ts'",
-    "tsup": "npx tsup"
+    "eslint": "npx eslint --ext .ts .",
+    "test": "mocha --import=tsx 'test/**/*.test.ts' --exit",
+    "tsup": "npm run clean && npx tsup"
   },
   "module": "dist/index.mjs",
   "main": "dist/index.js",
@@ -26,6 +28,26 @@
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./*": {
+      "import": "./dist/src/*.mjs",
+      "require": "./dist/src/*.js"
+    },
+    "./nodes": {
+      "import": "./dist/src/nodes/index.mjs",
+      "require": "./dist/src/nodes/index.js"
+    },
+    "./nodes/*": {
+      "import": "./dist/src/nodes/*.mjs",
+      "require": "./dist/src/nodes/*.js"
+    },
+    "./async": {
+      "import": "./dist/src/async/index.mjs",
+      "require": "./dist/src/async/index.js"
+    },
+    "./async/*": {
+      "import": "./dist/src/async/*.mjs",
+      "require": "./dist/src/async/*.js"
     }
   },
   "dependencies": {
@@ -33,25 +55,25 @@
     "is-number": "^7.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.1",
-    "@typescript-eslint/eslint-plugin": "^8.30.1",
-    "@typescript-eslint/parser": "^8.30.1",
-    "esbuild-register": "^3.6.0",
-    "eslint": "^8.57.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.9.1",
+    "eslint": "^10.4.1",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^17.6.0",
     "gulp-format-md": "^2.0.0",
-    "nyc": "^17.1.0",
-    "prettier": "^3.5.3",
-    "ts-mocha": "^11.1.0",
-    "ts-node": "^10.9.2",
+    "nyc": "^18.0.0",
+    "prettier": "^3.8.3",
     "tsconfig-paths": "^4.2.0",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.3"
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.1"
   },
   "keywords": [
     "accessor",
     "dot-prop",
-    "expand-value",
     "expand",
+    "expand-value",
     "get",
     "get-value",
     "key",
@@ -91,7 +113,13 @@
     },
     "reflinks": [
       "dot-prop",
-      "get-value"
+      "get-value",
+      "dry",
+      "index",
+      "key",
+      "setting",
+      "verb",
+      "verb-generate-readme"
     ]
   }
 }

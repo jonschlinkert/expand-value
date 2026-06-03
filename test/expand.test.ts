@@ -7,7 +7,7 @@ const data = {
   product: { variants: [{ title: 'draft151cm' }, { title: 'element151cm' }] }
 };
 
-describe('expand-value', () => {
+describe('expand', () => {
   describe('symbols', () => {
     it('should get a symbol', () => {
       const foo = Symbol('foo');
@@ -33,6 +33,63 @@ describe('expand-value', () => {
   describe('properties', () => {
     it('should get a property', () => {
       assert.equal(expand({ foo: 'correct' }, 'foo'), 'correct');
+    });
+  });
+
+  describe('resolve option', () => {
+    it('should resolve direct property reads', () => {
+      const data = { name: 'ada' };
+      const calls = [];
+      const options = {
+        resolve(value, receiver, key, opts) {
+          calls.push({ value, receiver, key, options: opts });
+          return typeof value === 'string' ? value.toUpperCase() : undefined;
+        }
+      };
+
+      assert.equal(expand(data, 'name', options), 'ADA');
+      assert.deepEqual(calls, [{ value: 'ada', receiver: data, key: 'name', options }]);
+    });
+
+    it('should resolve nested dot path reads', () => {
+      const calls = [];
+      const data = { user: { name: 'ada' } };
+      const options = {
+        resolve(value, _receiver, key) {
+          calls.push(key);
+          return typeof value === 'string' ? value.toUpperCase() : undefined;
+        }
+      };
+
+      assert.equal(expand(data, 'user.name', options), 'ADA');
+      assert.deepEqual(calls, ['user', 'name']);
+    });
+
+    it('should resolve parsed bracket path reads', () => {
+      const data = { items: ['a', 'b', 'c'], index: 1 };
+      const options = {
+        resolve(value, _receiver, key) {
+          return key === 1 ? value.toUpperCase() : undefined;
+        }
+      };
+
+      assert.equal(expand(data, 'items[index]', options), 'B');
+    });
+
+    it('should resolve range reads', () => {
+      const data = { items: ['a', 'b', 'c'] };
+      const options = {
+        resolve(value, _receiver, key) {
+          return typeof key === 'number' ? `${key}:${value}` : undefined;
+        }
+      };
+
+      assert.deepEqual(expand(data, 'items[0..2]', options), ['0:a', '1:b', '2:c']);
+    });
+
+    it('should keep the raw value when resolve returns null or undefined', () => {
+      assert.equal(expand({ name: 'correct' }, 'name', { resolve: () => null }), 'correct');
+      assert.equal(expand({ name: 'correct' }, 'name', { resolve: () => undefined }), 'correct');
     });
   });
 
@@ -93,6 +150,23 @@ describe('expand-value', () => {
   });
 
   describe('variable accessors', () => {
+    it('should resolve nested computed property names', () => {
+      const context = {
+        config: { theme: 'dark' },
+        themes: {
+          dark: { background: 'black', text: 'white' },
+          light: { background: 'white', text: 'black' }
+        },
+        setting: 'theme'
+      };
+
+      assert.equal(expand(context, 'setting'), 'theme');
+      assert.equal(expand(context, 'config[setting]'), 'dark');
+      assert.deepEqual(expand(context, 'themes[config[setting]]'), { background: 'black', text: 'white' });
+      assert.equal(expand(context, 'themes[config[setting]].background'), 'black');
+      assert.equal(expand(context, 'themes[config[setting]].text'), 'white');
+    });
+
     it('should expand foo[bar]', () => {
       assert.equal(expand({ foo: { bar: 'wrong', whatever: 'correct' }, bar: 'whatever' }, 'foo[bar]'), 'correct');
     });
@@ -403,7 +477,7 @@ describe('expand-value', () => {
     it('array-like objects with negative indices', () => {
       const obj = {
         '-1': 'correct',
-        length: 5
+        'length': 5
       };
       // This might fail if array-like object handling isn't robust
       assert.equal(expand(obj, '[-1]'), 'correct');

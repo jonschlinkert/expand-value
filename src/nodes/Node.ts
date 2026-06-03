@@ -12,9 +12,9 @@ export class Node {
     value?: string;
     output?: string;
     symbol?: string;
-    alt?: any;
-    match?: any;
-    loc?: any;
+    alt?: unknown;
+    match?: unknown;
+    loc?: unknown;
   }) {
     this.type = node.type;
     this.value = node.value || '';

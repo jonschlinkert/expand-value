@@ -1,19 +1,19 @@
-import { compile } from '~/compile';
+import { compile } from '~/async/compile';
 import { parse } from '~/parse';
 import { isObject, isValidObject, isValid } from '~/utils';
 
 // const METHOD_REGEX = /([["()]|\.(?:blank|empty|first|last|length|nil|size)(\.|$))/;
 const METHOD_REGEX = /(\[[^[\]]+?\]|\.(?:blank|empty|first|last|length|nil|size)(\.|$))/;
 
-export const expand = (data, path, options = {}) => {
+export const expand = async (data, path, options = {}) => {
   if (!isObject(options)) {
     options = { default: options };
   }
 
   const fallback = options.default !== undefined ? options.default : options.fallback;
   const helpers = options.helpers;
-  const resolveValue = (value, receiver, key) => {
-    return options.resolve?.(value, receiver, key, options) ?? value;
+  const resolveValue = async (value, receiver, key) => {
+    return (await options.resolve?.(value, receiver, key, options)) ?? value;
   };
 
   if (data && typeof path === 'string') {
@@ -21,17 +21,17 @@ export const expand = (data, path, options = {}) => {
       const prop = path.slice(1, -1);
 
       if (data[prop] !== undefined && isValid(prop, data, options)) {
-        return resolveValue(data[prop], data, prop);
+        return resolveValue(await data[prop], data, prop);
       }
     }
 
     if (data[path] !== undefined && isValid(path, data, options)) {
-      return resolveValue(data[path], data, path);
+      return resolveValue(await data[path], data, path);
     }
   }
 
   if ((typeof path === 'symbol' || typeof path === 'number') && isValid(path, data, options)) {
-    return resolveValue(data[path], data, path);
+    return resolveValue(await data[path], data, path);
   }
 
   if (typeof path !== 'string' && !Array.isArray(path)) {
@@ -43,7 +43,7 @@ export const expand = (data, path, options = {}) => {
   }
 
   if (path in data && isValid(path, data, options)) {
-    return resolveValue(data[path], data, path);
+    return resolveValue(await data[path], data, path);
   }
 
   if ((Array.isArray(path) || !METHOD_REGEX.test(path)) && !options.separator) {
@@ -69,12 +69,12 @@ export const expand = (data, path, options = {}) => {
           return fallback;
         }
 
-        ctx = helper(ctx);
+        ctx = await helper(ctx);
         continue;
       }
 
       if (options.onResolve) {
-        options.onResolve(ctx, key);
+        await options.onResolve(ctx, key);
       }
 
       // Handle negative indices and special number cases
@@ -95,10 +95,10 @@ export const expand = (data, path, options = {}) => {
         return fallback;
       }
 
-      let val = resolveValue(ctx[key], ctx, key);
+      let val = await resolveValue(await ctx[key], ctx, key);
 
       if (val === undefined && helper) {
-        val = helper(ctx);
+        val = await helper(ctx);
       }
 
       if (val !== undefined) {
@@ -123,7 +123,7 @@ export const expand = (data, path, options = {}) => {
           return fallback;
         }
 
-        temp = resolveValue(ctx[key], ctx, key);
+        temp = await resolveValue(await ctx[key], ctx, key);
         next = segs[i + 1];
 
         if (temp !== undefined) {
@@ -157,7 +157,7 @@ export const expand = (data, path, options = {}) => {
   }
 
   const { ast } = parse(path, options);
-  const output = compile(ast, data, options);
+  const output = await compile(ast, data, options);
 
   if (output === undefined) {
     return fallback;

@@ -2,21 +2,21 @@ import { define } from '~/utils';
 import { Node } from './Node';
 
 export class Block extends Node {
-  nodes: any[];
+  nodes: unknown[];
 
-  constructor(node: any) {
+  constructor(node: unknown) {
     super(node);
     this.nodes = node.nodes || [];
   }
 
   append(input: string): void {
-    // eslint-disable-next-line no-unused-expressions
+    // eslint-disable-next-line
     this.parent && this.parent.append(input);
     this.output = this.output || '';
     this.output += input;
   }
 
-  push(node: any): void {
+  push(node: unknown): void {
     define(node, 'parent', this);
     this.nodes.push(node);
   }

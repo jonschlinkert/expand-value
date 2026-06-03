@@ -1,20 +1,20 @@
 
 import assert from 'node:assert/strict';
-import { expand } from '~/expand';
+import { expand } from '~/async/expand';
 
-describe('performance', () => {
+describe('async performance', () => {
   describe('large data structures', () => {
-    it('should handle large arrays', () => {
+    it('should handle large arrays', async () => {
       const arr = Array(100000).fill(0).map((_, i) => i);
       const obj = { arr };
 
-      assert.equal(expand(obj, 'arr.99999'), 99999);
-      assert.equal(expand(obj, 'arr.first'), 0);
-      assert.equal(expand(obj, 'arr.last'), 99999);
-      assert.equal(expand(obj, 'arr.length'), 100000);
+      assert.equal(await expand(obj, 'arr.99999'), 99999);
+      assert.equal(await expand(obj, 'arr.first'), 0);
+      assert.equal(await expand(obj, 'arr.last'), 99999);
+      assert.equal(await expand(obj, 'arr.length'), 100000);
     });
 
-    it('should handle large objects', () => {
+    it('should handle large objects', async () => {
       const largeObj = {};
       for (let i = 0; i < 100000; i++) {
         largeObj[`key${i}`] = i;
@@ -22,28 +22,28 @@ describe('performance', () => {
 
       const obj = { data: largeObj };
 
-      assert.equal(expand(obj, 'data.key0'), 0);
-      assert.equal(expand(obj, 'data.key99999'), 99999);
-      assert.equal(expand(obj, 'data.size'), 100000);
+      assert.equal(await expand(obj, 'data.key0'), 0);
+      assert.equal(await expand(obj, 'data.key99999'), 99999);
+      assert.equal(await expand(obj, 'data.size'), 100000);
     });
 
-    it('should handle large strings', () => {
+    it('should handle large strings', async () => {
       console.time('repeat string');
       const str = 'a'.repeat(1_000_000);
       console.timeEnd('repeat string');
 
       const obj = { str };
 
-      console.time('expand');
-      assert.equal(expand(obj, 'str.length'), 1_000_000);
-      assert.equal(expand(obj, 'str.first'), 'a');
-      assert.equal(expand(obj, 'str.last'), 'a');
-      console.timeEnd('expand');
+      console.time('await expand');
+      assert.equal(await expand(obj, 'str.length'), 1_000_000);
+      assert.equal(await expand(obj, 'str.first'), 'a');
+      assert.equal(await expand(obj, 'str.last'), 'a');
+      console.timeEnd('await expand');
     });
   });
 
   describe('deep structures', () => {
-    it('should handle deeply nested objects', () => {
+    it('should handle deeply nested objects', async () => {
       let deepObj = { value: 'bottom' };
 
       for (let i = 0; i < 1000; i++) {
@@ -52,10 +52,10 @@ describe('performance', () => {
 
       const obj = { nested: deepObj };
       const path = Array(1000).fill('nested').join('.') + '.value';
-      assert.equal(expand(obj.nested, path), 'bottom');
+      assert.equal(await expand(obj.nested, path), 'bottom');
     });
 
-    it('should handle deep array nesting', () => {
+    it('should handle deep array nesting', async () => {
       let deepArray = ['found'];
 
       for (let i = 0; i < 1000; i++) {
@@ -64,12 +64,12 @@ describe('performance', () => {
 
       const obj = { nested: deepArray };
       const path = Array(1000).fill('0').join('.') + '.0';
-      assert.equal(expand(obj, `nested.${path}`), 'found');
+      assert.equal(await expand(obj, `nested.${path}`), 'found');
     });
   });
 
   describe('complex object graphs', () => {
-    it('should handle objects with many cross-references', () => {
+    it('should handle objects with many cross-references', async () => {
       const graph = {};
       // Create 100 nodes
       for (let i = 0; i < 100; i++) {
@@ -84,11 +84,11 @@ describe('performance', () => {
       }
 
       const obj = { graph };
-      assert.equal(expand(obj, 'graph.node0.refs.ref0.id') >= 0, true);
-      assert.equal(expand(obj, 'graph.node99.refs.ref9.id') >= 0, true);
+      assert.equal(await expand(obj, 'graph.node0.refs.ref0.id') >= 0, true);
+      assert.equal(await expand(obj, 'graph.node99.refs.ref9.id') >= 0, true);
     });
 
-    it('should handle branching object structures', () => {
+    it('should handle branching object structures', async () => {
       const createBranch = (depth, breadth) => {
         if (depth === 0) {
           return { value: 'leaf' };
@@ -103,13 +103,13 @@ describe('performance', () => {
       const tree = createBranch(5, 5); // 5 levels deep, 5 branches each
       const obj = { tree };
 
-      assert.equal(expand(obj, 'tree.branch0.branch0.branch0.branch0.branch0.value'), 'leaf');
-      assert.equal(expand(obj, 'tree.branch4.branch4.branch4.branch4.branch4.value'), 'leaf');
+      assert.equal(await expand(obj, 'tree.branch0.branch0.branch0.branch0.branch0.value'), 'leaf');
+      assert.equal(await expand(obj, 'tree.branch4.branch4.branch4.branch4.branch4.value'), 'leaf');
     });
   });
 
   describe('expensive operations', () => {
-    it('should handle getters with expensive computations', () => {
+    it('should handle getters with expensive computations', async () => {
       const obj = {
         get expensive() {
           let result = 0;
@@ -125,11 +125,11 @@ describe('performance', () => {
         }
       };
 
-      assert.equal(typeof expand(obj, 'expensive'), 'number');
-      assert.equal(expand(obj, 'nested.costly'), 0);
+      assert.equal(typeof await expand(obj, 'expensive'), 'number');
+      assert.equal(await expand(obj, 'nested.costly'), 0);
     });
 
-    it('should handle proxies with expensive handlers', () => {
+    it('should handle proxies with expensive handlers', async () => {
       const handler = {
         get(target, prop) {
           // Simulate expensive computation in proxy
@@ -143,35 +143,35 @@ describe('performance', () => {
       const proxy = new Proxy({ value: 'found' }, handler);
       const obj = { proxy };
 
-      assert.equal(expand(obj, 'proxy.value'), 'found');
+      assert.equal(await expand(obj, 'proxy.value'), 'found');
     });
   });
 
   describe('memory intensive operations', () => {
-    it('should handle sparse arrays', () => {
+    it('should handle sparse arrays', async () => {
       const sparse = [];
       sparse[0] = 'start';
       sparse[999999] = 'end';
       const obj = { sparse };
 
-      assert.equal(expand(obj, 'sparse.0'), 'start');
-      assert.equal(expand(obj, 'sparse.999999'), 'end');
-      assert.equal(expand(obj, 'sparse.500000'), undefined);
+      assert.equal(await expand(obj, 'sparse.0'), 'start');
+      assert.equal(await expand(obj, 'sparse.999999'), 'end');
+      assert.equal(await expand(obj, 'sparse.500000'), undefined);
     });
 
-    it('should handle large array-like objects', () => {
+    it('should handle large array-like objects', async () => {
       const arrayLike = { length: 1000000 };
       for (let i = 0; i < 1000000; i += 100000) {
         arrayLike[i] = `value${i}`;
       }
 
       const obj = { data: arrayLike };
-      assert.equal(expand(obj, 'data.0'), 'value0');
-      assert.equal(expand(obj, 'data.900000'), 'value900000');
-      assert.equal(expand(obj, 'data.length'), 1000000);
+      assert.equal(await expand(obj, 'data.0'), 'value0');
+      assert.equal(await expand(obj, 'data.900000'), 'value900000');
+      assert.equal(await expand(obj, 'data.length'), 1000000);
     });
 
-    it('should handle objects with many enumerable properties', () => {
+    it('should handle objects with many enumerable properties', async () => {
       const lotsOfProps = Object.create(null);
       for (let i = 0; i < 100000; i++) {
         Object.defineProperty(lotsOfProps, `prop${i}`, {
@@ -181,13 +181,13 @@ describe('performance', () => {
       }
       const obj = { props: lotsOfProps };
 
-      assert.equal(expand(obj, 'props.prop0'), 'value0');
-      assert.equal(expand(obj, 'props.prop99999'), 'value99999');
+      assert.equal(await expand(obj, 'props.prop0'), 'value0');
+      assert.equal(await expand(obj, 'props.prop99999'), 'value99999');
     });
   });
 
   describe('complex path resolution', () => {
-    it('should handle paths with many brackets', () => {
+    it('should handle paths with many brackets', async () => {
       const obj = {
         a: {
           b: {
@@ -200,11 +200,11 @@ describe('performance', () => {
         }
       };
 
-      assert.equal(expand(obj, 'a["b"]["c"]["d"]["e"]'), 'found');
-      assert.equal(expand(obj, "['a']['b']['c']['d']['e']"), 'found');
+      assert.equal(await expand(obj, 'a["b"]["c"]["d"]["e"]'), 'found');
+      assert.equal(await expand(obj, "['a']['b']['c']['d']['e']"), 'found');
     });
 
-    it('should handle complex path segments', () => {
+    it('should handle complex path segments', async () => {
       const obj = {
         'complex.key.with.dots': {
           'another.complex.key': {
@@ -213,7 +213,7 @@ describe('performance', () => {
         }
       };
 
-      assert.equal(expand(obj, 'complex\\.key\\.with\\.dots.another\\.complex\\.key.yet\\.another\\.one'), 'found');
+      assert.equal(await expand(obj, 'complex\\.key\\.with\\.dots.another\\.complex\\.key.yet\\.another\\.one'), 'found');
     });
   });
 });

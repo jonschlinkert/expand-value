@@ -1,6 +1,6 @@
 import { isObject, isSafeKey, unquote } from '~/utils';
 import { evaluate } from '~/expression';
-import { expand } from '~/expand';
+import { expand } from '~/async/expand';
 import * as helpers from '~/helpers';
 
 export interface Node {
@@ -16,20 +16,24 @@ export interface Node {
 
 export interface Options {
   helpers?: Record<string, Function>;
-  resolve?: (value: unknown, context: unknown, key: PropertyKey, options: Options) => unknown;
+  resolve?: (value: unknown, context: unknown, key: PropertyKey, options: Options) => unknown | Promise<unknown>;
   strict?: boolean;
 }
 
-export const compile = (ast: Node, data: Record<string, unknown> = {}, options: Options = {}): unknown => {
+export const compile = async (
+  ast: Node,
+  data: Record<string, unknown> = {},
+  options: Options = {}
+): Promise<unknown> => {
   const orig = { ...data };
   let context: unknown = orig;
   let prev: unknown = context;
   const fns = options.helpers ? { ...helpers, ...options.helpers } : helpers;
-  const resolveValue = (value: unknown, receiver: unknown, key: PropertyKey): unknown => {
-    return options.resolve?.(value, receiver, key, options) ?? value;
+  const resolveValue = async (value: unknown, receiver: unknown, key: PropertyKey): Promise<unknown> => {
+    return (await options.resolve?.(value, receiver, key, options)) ?? value;
   };
 
-  const resolve = (node: Node): void => {
+  const resolve = async (node: Node): Promise<void> => {
     if (node.skip || node.type === 'separator') {
       return;
     }
@@ -55,7 +59,7 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
             args.push(Symbol.for(child.value!));
             break;
           case 'ident':
-            args.push(expand(context, child.value!));
+            args.push(await expand(context, child.value!, options));
             break;
           default: {
             break;
@@ -74,18 +78,18 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
         if (inner.some(n => n.value === ' ')) {
           try {
             const text = inner.map(n => n.value).join('');
-            resolve({ type: 'ident', value: evaluate(text, data) });
+            await resolve({ type: 'ident', value: await evaluate(text, data) });
             return;
           } catch {}
         }
 
         if (inner.length === 1 && inner[0].type === 'ident') {
-          resolve(inner[0]);
+          await resolve(inner[0]);
           return;
         }
 
         if (node.type === 'bracket' && inner.some(n => n.type === 'bracket')) {
-          const value = expand(orig, node.output.slice(1, -1), options);
+          const value = await expand(orig, node.output.slice(1, -1), options);
 
           if (value === undefined) {
             context = undefined;
@@ -93,12 +97,15 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
           }
 
           prev = context;
-          context = resolveValue(context?.[value], context, value);
+          const raw = await context?.[value];
+          context = await resolveValue(raw, context, value);
           return;
         }
       }
 
-      node.nodes.forEach(child => resolve(child));
+      for (const child of node.nodes) {
+        await resolve(child);
+      }
       return;
     }
 
@@ -107,13 +114,15 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
       for (const symbol of Object.getOwnPropertySymbols(context)) {
         if (symbol === node.symbol || symbol.toString() === node.symbol!.toString()) {
-          context = resolveValue(context[symbol], context, symbol);
+          const raw = await context[symbol];
+          context = await resolveValue(raw, context, symbol);
           return;
         }
       }
 
       const symbol = node.symbol || Symbol.for(node.value!);
-      context = resolveValue(context[symbol], context, symbol);
+      const raw = await context[symbol];
+      context = await resolveValue(raw, context, symbol);
       return;
     }
 
@@ -127,7 +136,7 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
       if (node.parent?.type === 'bracket') {
         let temp = orig;
-        value = expand(temp, value);
+        value = await expand(temp, value, options);
 
         if (value === undefined) {
           context = undefined;
@@ -136,7 +145,8 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
         if (typeof value === 'number') {
           prev = context;
-          context = resolveValue(context[value], context, value);
+          const raw = await context[value];
+          context = await resolveValue(raw, context, value);
           return;
         }
 
@@ -147,30 +157,31 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
           while (isObject(value) && isObject(next) && temp) {
             const key = next.value!;
-            value = expand(value, key);
+            value = await expand(value, key, options);
             next.skip = true;
-            temp = expand(temp, value);
+            temp = await expand(temp, value, options);
             next = siblings[++index];
           }
         }
       }
 
       prev = context;
+      const raw = await context?.[value];
 
-      if (context?.[value] !== undefined) {
-        context = resolveValue(context[value], context, value);
+      if (raw !== undefined) {
+        context = await resolveValue(raw, context, value);
 
-        if (typeof context === 'function') {
-          context = context.call(prev);
+        if (typeof context === 'function' && value in fns) {
+          context = await context.call(prev);
         }
 
         return;
       }
 
-      const helper = fns[value];
+      const helper = await fns[value];
 
       if (typeof helper === 'function') {
-        context = helper(context);
+        context = await helper(context);
       }
 
       if (context === undefined && options.strict === true) {
@@ -192,25 +203,27 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
           const start = Number(node.value);
           const end = Number(after.value);
           const range = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-          context = range.map(i => resolveValue(context[i], context, i));
+          context = await Promise.all(range.map(async i => resolveValue(await context[i], context, i)));
           return;
         }
       }
 
       prev = context;
       const key = Number(node.value);
-      context = resolveValue(context[key], context, key);
+      const raw = await context[key];
+      context = await resolveValue(raw, context, key);
       return;
     }
 
     if (node.type === 'quoted') {
       prev = context;
       const key = node.match![2];
-      context = resolveValue(context[key], context, key);
+      const raw = await context[key];
+      context = await resolveValue(raw, context, key);
     }
   };
 
-  resolve(ast);
+  await resolve(ast);
 
   if (typeof context === 'function') {
     context.context = prev;

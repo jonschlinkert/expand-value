@@ -35,7 +35,7 @@ export class Location {
 export const location = (loc: { index: number; line: number; col: number }) => {
   const start = new Position(loc);
 
-  return (node: any) => {
+  return (node: unknown) => {
     node.loc = new Location(start, new Position(loc));
     return node;
   };

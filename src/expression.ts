@@ -20,7 +20,7 @@ function parse(expression) {
     while (pos < expression.length && /\d/.test(peek())) {
       n += consume();
     }
-    return { type: 'num', val: parseInt(n, 10) };
+    return { type: 'number', val: parseInt(n, 10) };
   }
 
   function parseIdent() {
@@ -33,22 +33,27 @@ function parse(expression) {
 
   function parsePath() {
     const parts = [parseIdent()];
+
     while (peek() === '.') {
       consume();
       parts.push(parseIdent());
     }
+
     return { type: 'path', parts };
   }
 
   function parsePrimary() {
     skipWs();
+
     const ch = peek();
     if (/\d/.test(ch)) {
       return parseNum();
     }
+
     if (/[\w$]/.test(ch)) {
       return parsePath();
     }
+
     if (ch === '(') {
       consume();
       const node = parseExpr();
@@ -56,19 +61,26 @@ function parse(expression) {
       if (peek() === ')') consume();
       return node;
     }
+
     return null;
   }
 
   function parseExpr() {
     let left = parsePrimary();
+
     while (true) {
       skipWs();
+
       const op = peek();
-      if (op !== '+' && op !== '-') break;
+      if (op !== '+' && op !== '-') {
+        break;
+      }
+
       consume();
       const right = parsePrimary();
-      left = { type: 'bin', op, left, right };
+      left = { type: 'binary', op, left, right };
     }
+
     return left;
   }
 
@@ -79,8 +91,10 @@ function evaluateExpression(node, data) {
   if (!node) return undefined;
 
   switch (node.type) {
-    case 'num':
+    case 'number': {
       return node.val;
+    }
+
     case 'path': {
       let val = data;
       for (const p of node.parts) {
@@ -89,13 +103,15 @@ function evaluateExpression(node, data) {
       }
       return val;
     }
-    case 'bin': {
+
+    case 'binary': {
       const l = evaluateExpression(node.left, data);
       const r = evaluateExpression(node.right, data);
       if (node.op === '+') return l + r;
       if (node.op === '-') return l - r;
       return undefined;
     }
+
     default: {
       return undefined;
     }
