@@ -1,6 +1,6 @@
 {
   "name": "expand-value",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Get deeply nested values from an object, like dot-prop and get-value, but with support for advanced features like bracket-notation and more.",
   "repository": "jonschlinkert/expand-value",
   "bugs": {
@@ -106,8 +106,10 @@
     },
     "related": {
       "list": [
+        "eval-estree-expression",
+        "whence",
         "get-value",
-        "eval-estree-expressions",
+        "set-value",
         "dry"
       ]
     },
@@ -119,7 +121,8 @@
       "key",
       "setting",
       "verb",
-      "verb-generate-readme"
+      "verb-generate-readme",
+      "whence"
     ]
   }
 }

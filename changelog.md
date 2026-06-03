@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-06-03
+
+### Added
+
+- Add async expand and compile exports under `expand-value/async` for resolving promise-backed values.
+- Add a `resolve` option for customizing value resolution during property access.
+- Add support for nested computed bracket expressions such as `themes[config[setting]].background`.
+- Add subpath exports for source modules, node classes, and async helpers.
+- Add async examples and test coverage for nested promise resolution.
+
+### Changed
+
+- Update build output to include all TypeScript source entries.
+- Update the test suite to use `tsx` with `*.test.ts` files.
+- Replace the legacy ESLint configuration with a flat ESLint config.
+- Tighten internal TypeScript types by replacing broad `any` usage with `unknown`.
+
+### Fixed
+
+- Resolve values consistently when accessing identifiers, quoted keys, symbols, numbers, ranges, and direct paths.
+- Normalize expression node names for number and binary expression parsing.
+
 ## [3.0.0] - 2025-12-15
 
 ### Added
