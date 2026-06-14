@@ -410,7 +410,7 @@ You might also be interested in these projects:
 
 | **Commits** | **Contributor** |  
 | --- | --- |  
-| 21 | [jonschlinkert](https://github.com/jonschlinkert) |  
+| 24 | [jonschlinkert](https://github.com/jonschlinkert) |  
 | 1  | [aykutkardas](https://github.com/aykutkardas) |  
 
 ### Author
