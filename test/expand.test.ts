@@ -1,5 +1,3 @@
-/* eslint-disable dot-notation */
-
 import assert from 'node:assert/strict';
 import { expand } from '~/expand';
 
@@ -33,6 +31,25 @@ describe('expand', () => {
   describe('properties', () => {
     it('should get a property', () => {
       assert.equal(expand({ foo: 'correct' }, 'foo'), 'correct');
+    });
+
+    it('should get a direct key from a Map', () => {
+      assert.equal(expand(new Map([['foo', 'correct']]), 'foo'), 'correct');
+    });
+
+    it('should get nested keys from Maps', () => {
+      const data = new Map([['foo', new Map([['bar', 'correct']])]]);
+      assert.equal(expand(data, 'foo.bar'), 'correct');
+    });
+
+    it('should get values from an object exposing a get function', () => {
+      const data = {
+        get(key) {
+          return key === 'foo' ? { bar: 'correct' } : undefined;
+        }
+      };
+
+      assert.equal(expand(data, 'foo.bar'), 'correct');
     });
   });
 

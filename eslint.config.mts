@@ -1,4 +1,3 @@
-// import pluginImport from 'eslint-plugin-import';
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -22,7 +21,6 @@ export default defineConfig([
     '**/vendor/'
   ]),
   tseslint.configs.recommended,
-  // pluginImport.flatConfigs.recommended,
   {
     files: ['**/*.{mjs,ts,mts}'],
     plugins: { js },
@@ -70,32 +68,13 @@ export default defineConfig([
       'curly': [1, 'multi-line', 'consistent'],
       'default-case': 1,
       'dot-location': [1, 'property'],
-      'dot-notation': 1,
+      'dot-notation': 0,
       'eol-last': 1,
       'eqeqeq': [1, 'allow-null'],
       'for-direction': 1,
       'func-call-spacing': 2,
       'generator-star-spacing': [1, { before: true, after: true }],
       'handle-callback-err': [2, '^(err|error)$'],
-      // 'import/order': [
-      //   'warn',
-      //   {
-      //     named: true,
-      //     groups: [
-      //       'type',
-      //       'builtin',
-      //       'external',
-      //       'internal',
-      //       'object',
-      //       'index',
-      //       'parent',
-      //       'sibling'
-      //     ],
-      //     pathGroups: [{ pattern: '**/*.{ts,tsx}', group: 'type' }],
-      //     pathGroupsExcludedImportTypes: ['type'],
-      //     alphabetize: { order: 'asc', caseInsensitive: true }
-      //   }
-      // ],
       'indent': [1, 2, { SwitchCase: 1 }],
       'key-spacing': [1, { beforeColon: false, afterColon: true }],
       'keyword-spacing': [1, { before: true, after: true }],

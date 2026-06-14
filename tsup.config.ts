@@ -10,5 +10,5 @@ export default defineConfig({
   shims: true,
   splitting: false,
   sourcemap: true,
-  target: 'node18'
+  target: `node${process.version.slice(1).split('.')[0]}`
 });

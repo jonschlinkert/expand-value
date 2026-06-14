@@ -5,7 +5,7 @@ async function main() {
     config: Promise.resolve({ theme: 'dark' }),
     themes: Promise.resolve({
       dark: Promise.resolve({ background: 'black', text: 'white' }),
-      light: Promise.resolve({ background: 'white', text: 'black' }),
+      light: Promise.resolve({ background: 'white', text: 'black' })
     }),
     setting: Promise.resolve('theme')
   };

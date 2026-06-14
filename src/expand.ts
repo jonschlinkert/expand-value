@@ -15,23 +15,29 @@ export const expand = (data, path, options = {}) => {
   const resolveValue = (value, receiver, key) => {
     return options.resolve?.(value, receiver, key, options) ?? value;
   };
+  const readValue = (receiver, key) => {
+    const value = receiver?.[key];
+    return value === undefined && typeof receiver?.get === 'function' ? receiver.get(key) : value;
+  };
 
   if (data && typeof path === 'string') {
     if (path.startsWith('[') && path.endsWith(']') && !path.slice(1).includes('[')) {
       const prop = path.slice(1, -1);
+      const value = readValue(data, prop);
 
-      if (data[prop] !== undefined && isValid(prop, data, options)) {
-        return resolveValue(data[prop], data, prop);
+      if (value !== undefined && isValid(prop, data, options)) {
+        return resolveValue(value, data, prop);
       }
     }
 
-    if (data[path] !== undefined && isValid(path, data, options)) {
-      return resolveValue(data[path], data, path);
+    const value = readValue(data, path);
+    if (value !== undefined && isValid(path, data, options)) {
+      return resolveValue(value, data, path);
     }
   }
 
   if ((typeof path === 'symbol' || typeof path === 'number') && isValid(path, data, options)) {
-    return resolveValue(data[path], data, path);
+    return resolveValue(readValue(data, path), data, path);
   }
 
   if (typeof path !== 'string' && !Array.isArray(path)) {
@@ -42,8 +48,9 @@ export const expand = (data, path, options = {}) => {
     return fallback;
   }
 
-  if (path in data && isValid(path, data, options)) {
-    return resolveValue(data[path], data, path);
+  const value = readValue(data, path);
+  if ((value !== undefined || path in data) && isValid(path, data, options)) {
+    return resolveValue(value, data, path);
   }
 
   if ((Array.isArray(path) || !METHOD_REGEX.test(path)) && !options.separator) {
@@ -95,7 +102,7 @@ export const expand = (data, path, options = {}) => {
         return fallback;
       }
 
-      let val = resolveValue(ctx[key], ctx, key);
+      let val = resolveValue(readValue(ctx, key), ctx, key);
 
       if (val === undefined && helper) {
         val = helper(ctx);
@@ -123,7 +130,7 @@ export const expand = (data, path, options = {}) => {
           return fallback;
         }
 
-        temp = resolveValue(ctx[key], ctx, key);
+        temp = resolveValue(readValue(ctx, key), ctx, key);
         next = segs[i + 1];
 
         if (temp !== undefined) {

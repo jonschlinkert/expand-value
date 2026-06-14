@@ -2,7 +2,6 @@ import { compile } from '~/async/compile';
 import { parse } from '~/parse';
 import { isObject, isValidObject, isValid } from '~/utils';
 
-// const METHOD_REGEX = /([["()]|\.(?:blank|empty|first|last|length|nil|size)(\.|$))/;
 const METHOD_REGEX = /(\[[^[\]]+?\]|\.(?:blank|empty|first|last|length|nil|size)(\.|$))/;
 
 export const expand = async (data, path, options = {}) => {
@@ -13,25 +12,32 @@ export const expand = async (data, path, options = {}) => {
   const fallback = options.default !== undefined ? options.default : options.fallback;
   const helpers = options.helpers;
   const resolveValue = async (value, receiver, key) => {
-    return (await options.resolve?.(value, receiver, key, options)) ?? value;
+    return await options.resolve?.(value, receiver, key, options) ?? value;
+  };
+
+  const readValue = async (receiver, key) => {
+    const value = await receiver?.[key];
+    return value === undefined && typeof receiver?.get === 'function' ? receiver.get(key) : value;
   };
 
   if (data && typeof path === 'string') {
     if (path.startsWith('[') && path.endsWith(']') && !path.slice(1).includes('[')) {
       const prop = path.slice(1, -1);
+      const value = await readValue(data, prop);
 
-      if (data[prop] !== undefined && isValid(prop, data, options)) {
-        return resolveValue(await data[prop], data, prop);
+      if (value !== undefined && isValid(prop, data, options)) {
+        return resolveValue(value, data, prop);
       }
     }
 
-    if (data[path] !== undefined && isValid(path, data, options)) {
-      return resolveValue(await data[path], data, path);
+    const value = await readValue(data, path);
+    if (value !== undefined && isValid(path, data, options)) {
+      return resolveValue(value, data, path);
     }
   }
 
   if ((typeof path === 'symbol' || typeof path === 'number') && isValid(path, data, options)) {
-    return resolveValue(await data[path], data, path);
+    return resolveValue(await readValue(data, path), data, path);
   }
 
   if (typeof path !== 'string' && !Array.isArray(path)) {
@@ -42,8 +48,9 @@ export const expand = async (data, path, options = {}) => {
     return fallback;
   }
 
-  if (path in data && isValid(path, data, options)) {
-    return resolveValue(await data[path], data, path);
+  const value = await readValue(data, path);
+  if ((value !== undefined || path in data) && isValid(path, data, options)) {
+    return resolveValue(value, data, path);
   }
 
   if ((Array.isArray(path) || !METHOD_REGEX.test(path)) && !options.separator) {
@@ -95,7 +102,7 @@ export const expand = async (data, path, options = {}) => {
         return fallback;
       }
 
-      let val = await resolveValue(await ctx[key], ctx, key);
+      let val = await resolveValue(await readValue(ctx, key), ctx, key);
 
       if (val === undefined && helper) {
         val = await helper(ctx);
@@ -123,7 +130,7 @@ export const expand = async (data, path, options = {}) => {
           return fallback;
         }
 
-        temp = await resolveValue(await ctx[key], ctx, key);
+        temp = await resolveValue(await readValue(ctx, key), ctx, key);
         next = segs[i + 1];
 
         if (temp !== undefined) {

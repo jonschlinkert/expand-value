@@ -79,6 +79,25 @@ describe('async expand', () => {
     it('should get a property', async () => {
       assert.equal(await expand({ foo: 'correct' }, 'foo'), 'correct');
     });
+
+    it('should get a direct key from a Map', async () => {
+      assert.equal(await expand(new Map([['foo', 'correct']]), 'foo'), 'correct');
+    });
+
+    it('should get nested keys from Maps', async () => {
+      const data = new Map([['foo', new Map([['bar', Promise.resolve('correct')]])]]);
+      assert.equal(await expand(data, 'foo.bar'), 'correct');
+    });
+
+    it('should get values from an object exposing a get function', async () => {
+      const data = {
+        async get(key) {
+          return key === 'foo' ? { bar: Promise.resolve('correct') } : undefined;
+        }
+      };
+
+      assert.equal(await expand(data, 'foo.bar'), 'correct');
+    });
   });
 
   describe('nested properties', () => {

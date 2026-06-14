@@ -30,7 +30,7 @@ export const compile = async (
   let prev: unknown = context;
   const fns = options.helpers ? { ...helpers, ...options.helpers } : helpers;
   const resolveValue = async (value: unknown, receiver: unknown, key: PropertyKey): Promise<unknown> => {
-    return (await options.resolve?.(value, receiver, key, options)) ?? value;
+    return await options.resolve?.(value, receiver, key, options) ?? value;
   };
 
   const resolve = async (node: Node): Promise<void> => {
