@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "cover": "nyc --all --reporter=text --reporter=html --include=src npm run test",
     "eslint": "npx eslint --ext .ts .",
-    "test": "mocha --import=tsx 'test/**/*.test.ts' --exit",
+    "test": "mocha --import=tsx \"test/**/*.test.ts\" --exit",
     "tsup": "npm run clean && npx tsup"
   },
   "module": "dist/index.mjs",
