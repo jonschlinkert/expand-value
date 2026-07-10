@@ -38,7 +38,7 @@ describe('async expand', () => {
       setting: async () => 'theme'
     };
     const options = {
-      resolve: async value => (typeof value === 'function' ? value() : value)
+      resolve: async (_target, _prop, value) => (typeof value === 'function' ? value() : value)
     };
 
     it('should resolve a promised property', async () => {

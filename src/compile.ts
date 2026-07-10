@@ -16,7 +16,7 @@ export interface Node {
 
 export interface Options {
   helpers?: Record<string, Function>;
-  resolve?: (value: unknown, context: unknown, key: PropertyKey, options: Options) => unknown;
+  resolve?: (target: unknown, prop: PropertyKey, value: unknown, state: { segments: PropertyKey[]; index: number }) => unknown;
   strict?: boolean;
 }
 
@@ -24,9 +24,11 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
   const orig = { ...data };
   let context: unknown = orig;
   let prev: unknown = context;
+  const segments: PropertyKey[] = [];
   const fns = options.helpers ? { ...helpers, ...options.helpers } : helpers;
-  const resolveValue = (value: unknown, receiver: unknown, key: PropertyKey): unknown => {
-    return options.resolve?.(value, receiver, key, options) ?? value;
+  const resolveValue = (target: unknown, prop: PropertyKey, value: unknown): unknown => {
+    const index = segments.push(prop) - 1;
+    return options.resolve?.(target, prop, value, { segments, index }) ?? value;
   };
 
   const resolve = (node: Node): void => {
@@ -93,7 +95,7 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
           }
 
           prev = context;
-          context = resolveValue(context?.[value], context, value);
+          context = resolveValue(context, value, context?.[value]);
           return;
         }
       }
@@ -107,13 +109,13 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
       for (const symbol of Object.getOwnPropertySymbols(context)) {
         if (symbol === node.symbol || symbol.toString() === node.symbol!.toString()) {
-          context = resolveValue(context[symbol], context, symbol);
+          context = resolveValue(context, symbol, context[symbol]);
           return;
         }
       }
 
       const symbol = node.symbol || Symbol.for(node.value!);
-      context = resolveValue(context[symbol], context, symbol);
+      context = resolveValue(context, symbol, context[symbol]);
       return;
     }
 
@@ -136,7 +138,7 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
         if (typeof value === 'number') {
           prev = context;
-          context = resolveValue(context[value], context, value);
+          context = resolveValue(context, value, context[value]);
           return;
         }
 
@@ -155,11 +157,11 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
         }
       }
 
-      prev = context;
+      const target = context;
+      prev = target;
+      context = resolveValue(target, value, target?.[value]);
 
-      if (context?.[value] !== undefined) {
-        context = resolveValue(context[value], context, value);
-
+      if (context !== undefined) {
         if (typeof context === 'function') {
           context = context.call(prev);
         }
@@ -167,6 +169,7 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
         return;
       }
 
+      context = target;
       const helper = fns[value];
 
       if (typeof helper === 'function') {
@@ -192,21 +195,21 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
           const start = Number(node.value);
           const end = Number(after.value);
           const range = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-          context = range.map(i => resolveValue(context[i], context, i));
+          context = range.map(i => resolveValue(context, i, context[i]));
           return;
         }
       }
 
       prev = context;
       const key = Number(node.value);
-      context = resolveValue(context[key], context, key);
+      context = resolveValue(context, key, context[key]);
       return;
     }
 
     if (node.type === 'quoted') {
       prev = context;
       const key = node.match![2];
-      context = resolveValue(context[key], context, key);
+      context = resolveValue(context, key, context[key]);
     }
   };
 

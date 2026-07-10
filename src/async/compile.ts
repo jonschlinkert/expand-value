@@ -16,7 +16,7 @@ export interface Node {
 
 export interface Options {
   helpers?: Record<string, Function>;
-  resolve?: (value: unknown, context: unknown, key: PropertyKey, options: Options) => unknown | Promise<unknown>;
+  resolve?: (target: unknown, prop: PropertyKey, value: unknown, state: { segments: PropertyKey[]; index: number }) => unknown | Promise<unknown>;
   strict?: boolean;
 }
 
@@ -28,9 +28,11 @@ export const compile = async (
   const orig = { ...data };
   let context: unknown = orig;
   let prev: unknown = context;
+  const segments: PropertyKey[] = [];
   const fns = options.helpers ? { ...helpers, ...options.helpers } : helpers;
-  const resolveValue = async (value: unknown, receiver: unknown, key: PropertyKey): Promise<unknown> => {
-    return await options.resolve?.(value, receiver, key, options) ?? value;
+  const resolveValue = async (target: unknown, prop: PropertyKey, value: unknown): Promise<unknown> => {
+    const index = segments.push(prop) - 1;
+    return options.resolve?.(target, prop, value, { segments, index }) ?? value;
   };
 
   const resolve = async (node: Node): Promise<void> => {
@@ -98,7 +100,7 @@ export const compile = async (
 
           prev = context;
           const raw = await context?.[value];
-          context = await resolveValue(raw, context, value);
+          context = await resolveValue(context, value, raw);
           return;
         }
       }
@@ -115,14 +117,14 @@ export const compile = async (
       for (const symbol of Object.getOwnPropertySymbols(context)) {
         if (symbol === node.symbol || symbol.toString() === node.symbol!.toString()) {
           const raw = await context[symbol];
-          context = await resolveValue(raw, context, symbol);
+          context = await resolveValue(context, symbol, raw);
           return;
         }
       }
 
       const symbol = node.symbol || Symbol.for(node.value!);
       const raw = await context[symbol];
-      context = await resolveValue(raw, context, symbol);
+      context = await resolveValue(context, symbol, raw);
       return;
     }
 
@@ -146,7 +148,7 @@ export const compile = async (
         if (typeof value === 'number') {
           prev = context;
           const raw = await context[value];
-          context = await resolveValue(raw, context, value);
+          context = await resolveValue(context, value, raw);
           return;
         }
 
@@ -165,12 +167,12 @@ export const compile = async (
         }
       }
 
-      prev = context;
-      const raw = await context?.[value];
+      const target = context;
+      prev = target;
+      const raw = await target?.[value];
+      context = await resolveValue(target, value, raw);
 
-      if (raw !== undefined) {
-        context = await resolveValue(raw, context, value);
-
+      if (context !== undefined) {
         if (typeof context === 'function' && value in fns) {
           context = await context.call(prev);
         }
@@ -178,6 +180,7 @@ export const compile = async (
         return;
       }
 
+      context = target;
       const helper = await fns[value];
 
       if (typeof helper === 'function') {
@@ -203,7 +206,7 @@ export const compile = async (
           const start = Number(node.value);
           const end = Number(after.value);
           const range = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-          context = await Promise.all(range.map(async i => resolveValue(await context[i], context, i)));
+          context = await Promise.all(range.map(async i => resolveValue(context, i, await context[i])));
           return;
         }
       }
@@ -211,7 +214,7 @@ export const compile = async (
       prev = context;
       const key = Number(node.value);
       const raw = await context[key];
-      context = await resolveValue(raw, context, key);
+      context = await resolveValue(context, key, raw);
       return;
     }
 
@@ -219,7 +222,7 @@ export const compile = async (
       prev = context;
       const key = node.match![2];
       const raw = await context[key];
-      context = await resolveValue(raw, context, key);
+      context = await resolveValue(context, key, raw);
     }
   };
 

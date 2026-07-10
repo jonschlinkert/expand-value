@@ -58,22 +58,22 @@ describe('expand', () => {
       const data = { name: 'ada' };
       const calls = [];
       const options = {
-        resolve(value, receiver, key, opts) {
-          calls.push({ value, receiver, key, options: opts });
+        resolve(target, prop, value, state) {
+          calls.push({ target, prop, value, state });
           return typeof value === 'string' ? value.toUpperCase() : undefined;
         }
       };
 
       assert.equal(expand(data, 'name', options), 'ADA');
-      assert.deepEqual(calls, [{ value: 'ada', receiver: data, key: 'name', options }]);
+      assert.deepEqual(calls, [{ target: data, prop: 'name', value: 'ada', state: { segments: ['name'], index: 0 } }]);
     });
 
     it('should resolve nested dot path reads', () => {
       const calls = [];
       const data = { user: { name: 'ada' } };
       const options = {
-        resolve(value, _receiver, key) {
-          calls.push(key);
+        resolve(_target, prop, value) {
+          calls.push(prop);
           return typeof value === 'string' ? value.toUpperCase() : undefined;
         }
       };
@@ -85,8 +85,8 @@ describe('expand', () => {
     it('should resolve parsed bracket path reads', () => {
       const data = { items: ['a', 'b', 'c'], index: 1 };
       const options = {
-        resolve(value, _receiver, key) {
-          return key === 1 ? value.toUpperCase() : undefined;
+        resolve(_target, prop, value) {
+          return prop === 1 ? value.toUpperCase() : undefined;
         }
       };
 
@@ -96,8 +96,8 @@ describe('expand', () => {
     it('should resolve range reads', () => {
       const data = { items: ['a', 'b', 'c'] };
       const options = {
-        resolve(value, _receiver, key) {
-          return typeof key === 'number' ? `${key}:${value}` : undefined;
+        resolve(_target, prop, value) {
+          return typeof prop === 'number' ? `${prop}:${value}` : undefined;
         }
       };
 

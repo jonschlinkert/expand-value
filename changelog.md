@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-07-10
+
+### Added
+
+- Add resolution state with the full path `segments` and current segment `index` to the `resolve` option.
+- Allow `resolve` to provide values for missing properties, including direct, dot-separated, and bracket paths.
+- Document the available expansion and parsing options with examples.
+
+### Changed
+
+- Change the `resolve` callback signature to `(target, prop, value, state)` for both synchronous and asynchronous APIs.
+- Call `resolve` after every property read, including reads that return `undefined`.
+
 ## [4.1.0] - 2026-06-14
 
 ### Added
