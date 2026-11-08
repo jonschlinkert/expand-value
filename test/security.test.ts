@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict';
 import { expand } from '~/expand';
 

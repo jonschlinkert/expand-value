@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict';
 import { prune } from './support/prune';
 import { parse } from '~/parse';

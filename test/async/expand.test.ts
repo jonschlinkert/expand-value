@@ -37,6 +37,7 @@ describe('async expand', () => {
       }),
       setting: async () => 'theme'
     };
+
     const options = {
       resolve: async (_target, _prop, value) => (typeof value === 'function' ? value() : value)
     };
@@ -50,6 +51,35 @@ describe('async expand', () => {
       assert.deepEqual(await expand(data, 'themes[config[setting]]', options), { background: 'black', text: 'white' });
       assert.equal(await expand(data, 'themes[config[setting]].background', options), 'black');
       assert.equal(await expand(data, 'themes[config[setting]].text', options), 'white');
+    });
+
+    it('should resolve dot-notation when every nested property is an async function', async () => {
+      const data = {
+        a: async () => ({
+          b: async () => ({
+            c: async () => ({
+              d: async () => 'correct'
+            })
+          })
+        })
+      };
+
+      assert.equal(await expand(data, 'a.b.c.d', options), 'correct');
+    });
+
+    it('should resolve dot-notation with nested promises and async functions', async () => {
+      const data = {
+        a: Promise.resolve({
+          b: async () =>
+            Promise.resolve({
+              c: Promise.resolve({
+                d: async () => Promise.resolve('correct')
+              })
+            })
+        })
+      };
+
+      assert.equal(await expand(data, 'a.b.c.d', options), 'correct');
     });
   });
 
@@ -97,6 +127,63 @@ describe('async expand', () => {
       };
 
       assert.equal(await expand(data, 'foo.bar'), 'correct');
+    });
+  });
+
+  describe('resolve option', () => {
+    it('should resolve direct property reads', async () => {
+      const data = { name: 'ada' };
+      const calls = [];
+      const options = {
+        resolve(target, prop, value, state) {
+          calls.push({ target, prop, value, state });
+          return typeof value === 'string' ? value.toUpperCase() : undefined;
+        }
+      };
+
+      assert.equal(await expand(data, 'name', options), 'ADA');
+      assert.deepEqual(calls, [{ target: data, prop: 'name', value: 'ada', state: { segments: ['name'], index: 0 } }]);
+    });
+
+    it('should resolve nested dot path reads', async () => {
+      const calls = [];
+      const data = { user: { name: 'ada' } };
+      const options = {
+        resolve(_target, prop, value) {
+          calls.push(prop);
+          return typeof value === 'string' ? value.toUpperCase() : undefined;
+        }
+      };
+
+      assert.equal(await expand(data, 'user.name', options), 'ADA');
+      assert.deepEqual(calls, ['user', 'name']);
+    });
+
+    it('should resolve parsed bracket path reads', async () => {
+      const data = { items: ['a', 'b', 'c'], index: 1 };
+      const options = {
+        resolve(_target, prop, value) {
+          return prop === 1 ? value.toUpperCase() : value;
+        }
+      };
+
+      assert.equal(await expand(data, 'items[index]', options), 'B');
+    });
+
+    it('should resolve range reads', async () => {
+      const data = { items: ['a', 'b', 'c'] };
+      const options = {
+        resolve(_target, prop, value) {
+          return typeof prop === 'number' ? `${prop}:${value}` : value;
+        }
+      };
+
+      assert.deepEqual(await expand(data, 'items[0..2]', options), ['0:a', '1:b', '2:c']);
+    });
+
+    it('should keep the raw value when resolve returns null or undefined', async () => {
+      assert.equal(await expand({ name: 'correct' }, 'name', { resolve: () => null }), 'correct');
+      assert.equal(await expand({ name: 'correct' }, 'name', { resolve: () => undefined }), 'correct');
     });
   });
 
@@ -154,6 +241,202 @@ describe('async expand', () => {
       assert.deepEqual(await expand(data, 'items[0..4]'), ['a', 'b', 'c', 'd', 'e']);
       assert.deepEqual(await expand(data, 'items[2..2]'), ['c']);
     });
+
+    it('should get a property from each element in a range', async () => {
+      const data = { items: [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }] };
+      assert.deepEqual(await expand(data, 'items[1..3].name'), ['b', 'c', 'd']);
+    });
+
+    it('should keep a single-element range as an array after property access', async () => {
+      const data = { items: [{ name: 'a' }, { name: 'b' }] };
+      assert.deepEqual(await expand(data, 'items[1..1].name'), ['b']);
+    });
+
+    it('should select all array elements with a wildcard', async () => {
+      const data = { items: ['a', 'b', 'c'] };
+      assert.deepEqual(await expand(data, 'items[*]'), ['a', 'b', 'c']);
+    });
+
+    it('should get a property from each wildcard-selected element', async () => {
+      const data = { items: [{ foo: 0 }, { foo: false }, { foo: '' }, { foo: null }] };
+      assert.deepEqual(await expand(data, 'items[*].foo'), [0, false, '', null]);
+    });
+
+    it('should resolve multiple properties after a range', async () => {
+      const data = { items: [{ foo: { bar: 'a' } }, { foo: { bar: 'b' } }] };
+      assert.deepEqual(await expand(data, 'items[0..1].foo.bar'), ['a', 'b']);
+    });
+
+    it('should resolve multiple properties after a wildcard', async () => {
+      const data = { items: [{ foo: { bar: 'a' } }, { foo: { bar: 'b' } }] };
+      assert.deepEqual(await expand(data, 'items[*].foo.bar'), ['a', 'b']);
+    });
+
+    it('should resolve quoted properties after a selection', async () => {
+      const data = { items: [{ 'display.name': 'Ada' }, { 'display.name': 'Grace' }] };
+      assert.deepEqual(await expand(data, 'items[*]["display.name"]'), ['Ada', 'Grace']);
+    });
+
+    it('should resolve computed properties after a selection', async () => {
+      const data = { key: 'name', items: [{ name: 'Ada' }, { name: 'Grace' }] };
+      assert.deepEqual(await expand(data, 'items[*][key]'), ['Ada', 'Grace']);
+    });
+
+    it('should index each array returned by a selected property', async () => {
+      const data = { items: [{ names: ['a', 'b'] }, { names: ['c', 'd'] }] };
+      assert.deepEqual(await expand(data, 'items[*].names[0]'), ['a', 'c']);
+    });
+
+    it('should resolve negative indices within each selected array', async () => {
+      const data = {
+        items: [
+          ['a', 'b'],
+          ['c', 'd', 'e']
+        ]
+      };
+      assert.deepEqual(await expand(data, 'items[*][-1]'), ['b', 'e']);
+    });
+
+    it('should access array properties without creating another selection', async () => {
+      const data = { items: [{ names: ['a', 'b'] }, { names: ['c'] }] };
+      assert.deepEqual(await expand(data, 'items[*].names.length'), [2, 1]);
+    });
+
+    it('should preserve nesting for repeated wildcards', async () => {
+      const data = { groups: [{ items: [{ name: 'a' }, { name: 'b' }] }, { items: [] }, { items: [{ name: 'c' }] }] };
+      assert.deepEqual(await expand(data, 'groups[*].items[*].name'), [['a', 'b'], [], ['c']]);
+    });
+
+    it('should apply a range separately within each wildcard selection', async () => {
+      const data = {
+        groups: [
+          [{ name: 'a' }, { name: 'b' }],
+          [{ name: 'c' }, { name: 'd' }]
+        ]
+      };
+      assert.deepEqual(await expand(data, 'groups[*][0..1].name'), [
+        ['a', 'b'],
+        ['c', 'd']
+      ]);
+    });
+
+    it('should apply a wildcard within each range-selected element', async () => {
+      const data = { groups: [[], [{ name: 'a' }], [{ name: 'b' }, { name: 'c' }]] };
+      assert.deepEqual(await expand(data, 'groups[1..2][*].name'), [['a'], ['b', 'c']]);
+    });
+
+    it('should return an empty array when projecting an empty selection', async () => {
+      assert.deepEqual(await expand({ items: [] }, 'items[*].foo.bar'), []);
+    });
+
+    it('should retain undefined entries for missing selected properties', async () => {
+      const data = { items: [{ name: 'a' }, {}, { name: 'c' }] };
+      assert.deepEqual(await expand(data, 'items[*].name'), ['a', undefined, 'c']);
+    });
+
+    it('should retain undefined entries for missing intermediate properties', async () => {
+      const data = { items: [{ foo: { bar: 'a' } }, {}, { foo: { bar: 'c' } }] };
+      assert.deepEqual(await expand(data, 'items[*].foo.bar'), ['a', undefined, 'c']);
+    });
+
+    it('should preserve holes in a range selection', async () => {
+      const items = Array(5);
+      items[1] = 'a';
+      items[3] = 'b';
+      const expected = Array(3);
+      expected[0] = 'a';
+      expected[2] = 'b';
+      assert.deepEqual(await expand({ items }, 'items[1..3]'), expected);
+    });
+
+    it('should preserve holes when projecting a range', async () => {
+      const items = Array(5);
+      items[1] = { name: 'a' };
+      items[3] = { name: 'b' };
+      const expected = Array(3);
+      expected[0] = 'a';
+      expected[2] = 'b';
+      assert.deepEqual(await expand({ items }, 'items[1..3].name'), expected);
+    });
+
+    it('should distinguish wildcard-selected holes from explicit undefined entries', async () => {
+      const items = Array(5);
+      items[1] = { name: 'a' };
+      items[2] = undefined;
+      items[3] = {};
+      const expected = Array(5);
+      expected[1] = 'a';
+      expected[2] = undefined;
+      expected[3] = undefined;
+      assert.deepEqual(await expand({ items }, 'items[*].name'), expected);
+    });
+
+    it('should preserve holes at each nested selection depth', async () => {
+      const groups = Array(3);
+      groups[1] = Array(2);
+      groups[1][1] = { name: 'a' };
+      const expected = Array(3);
+      expected[1] = Array(2);
+      expected[1][1] = 'a';
+      assert.deepEqual(await expand({ groups }, 'groups[*][*].name'), expected);
+    });
+
+    it('should resolve helpers separately for selected values', async () => {
+      const data = { items: [{ name: 'ada' }, { name: 'grace' }] };
+      const helpers = { uppercase: value => value.toUpperCase() };
+      assert.deepEqual(await expand(data, 'items[*].name.uppercase', { helpers }), ['ADA', 'GRACE']);
+    });
+
+    it('should call resolve with each selected property owner', async () => {
+      const data = { items: [{ name: 'ada' }, { name: 'grace' }] };
+      const targets = [];
+      const options = {
+        resolve(target, prop, value) {
+          if (prop === 'name') {
+            targets.push(target);
+            return value.toUpperCase();
+          }
+
+          return value;
+        }
+      };
+
+      assert.deepEqual(await expand(data, 'items[*].name', options), ['ADA', 'GRACE']);
+      assert.equal(targets[0], data.items[0]);
+      assert.equal(targets[1], data.items[1]);
+      assert.equal(targets.length, 2);
+    });
+
+    it('should treat a quoted asterisk as a property key', async () => {
+      const data = { items: { '*': { name: 'literal' } } };
+      assert.equal(await expand(data, 'items["*"].name'), 'literal');
+    });
+
+    it('should expand foo["bar"].name', async () => {
+      assert.equal(await expand({ foo: { bar: { name: 'correct' } } }, 'foo["bar"].name'), 'correct');
+    });
+
+    it('should expand foo["bar"]["name"]', async () => {
+      assert.equal(await expand({ foo: { bar: { name: 'correct' } } }, 'foo["bar"]["name"]'), 'correct');
+    });
+
+    it('should expand foo["bar"][0]', async () => {
+      assert.equal(await expand({ foo: { bar: ['correct'] } }, 'foo["bar"][0]'), 'correct');
+    });
+
+    it('should expand foo["bar"][0][1]', async () => {
+      assert.equal(await expand({ foo: { bar: [['wrong', 'correct']] } }, 'foo["bar"][0][1]'), 'correct');
+    });
+
+    it('should expand ranges in square brackets and get properties', async () => {
+      const data = {
+        items: [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }]
+      };
+
+      assert.deepEqual(await expand(data, 'items[1..3].name'), ['b', 'c', 'd']);
+      assert.deepEqual(await expand(data, 'items[0..4].name'), ['a', 'b', 'c', 'd', 'e']);
+      assert.deepEqual(await expand(data, 'items[2..2].name'), ['c']);
+    });
   });
 
   describe('variable accessors', () => {
@@ -175,7 +458,10 @@ describe('async expand', () => {
     });
 
     it('should expand foo[bar]', async () => {
-      assert.equal(await expand({ foo: { bar: 'wrong', whatever: 'correct' }, bar: 'whatever' }, 'foo[bar]'), 'correct');
+      assert.equal(
+        await expand({ foo: { bar: 'wrong', whatever: 'correct' }, bar: 'whatever' }, 'foo[bar]'),
+        'correct'
+      );
     });
 
     it('should expand foo["bar"].baz[qux]', async () => {
@@ -327,6 +613,10 @@ describe('async expand', () => {
       const context = { items: ['a', 'b', 'c'], start: 2 };
       assert.equal(await expand(context, 'items[items.length - start]'), 'b');
     });
+
+    it('should support negative indices', async () => {
+      assert.equal(await expand({ items: ['a', 'b', 'c'] }, 'items[-1]'), 'c');
+    });
   });
 
   describe('array access failures', () => {
@@ -334,8 +624,8 @@ describe('async expand', () => {
       assert.equal(await expand({ items: ['a', 'b', 'c'] }, 'items[5]'), undefined);
     });
 
-    it('should return undefined for negative indices', async () => {
-      assert.equal(await expand({ items: ['a', 'b', 'c'] }, 'items[-1]'), undefined);
+    it('should return undefined for negative indices beyond array bounds', async () => {
+      assert.equal(await expand({ items: ['a', 'b', 'c'] }, 'items[-4]'), undefined);
     });
 
     it('should return undefined for non-integer indices', async () => {

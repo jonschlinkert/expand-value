@@ -1,11 +1,137 @@
-
 import assert from 'node:assert/strict';
+import inspector from 'node:inspector';
+import perfHooks from 'node:perf_hooks';
 import { expand } from '~/expand';
 
 describe('sync performance', () => {
+  describe('execution time scaling', () => {
+    for (const syntax of ['dot', 'bracket', 'escaped']) {
+      it(`should scale proportionally with ${syntax} path length`, async function () {
+        this.timeout(15000);
+
+        const sizes = [64, 256, 1024];
+        const fixtures = sizes.map(size => {
+          if (syntax === 'escaped') {
+            const key = 'a.b'.repeat(size);
+            return { obj: { [key]: 'found' }, path: key.replaceAll('.', '\\.') };
+          }
+
+          let obj = { value: 'found' };
+          for (let i = 0; i < size; i++) {
+            obj = { nested: obj };
+          }
+          const segment = syntax === 'dot' ? 'nested.' : '["nested"]';
+          const suffix = syntax === 'dot' ? 'value' : '["value"]';
+          return { obj, path: segment.repeat(size) + suffix };
+        });
+        const samples = sizes.map(() => []);
+        const run = (fixture, count) => {
+          let result;
+          for (let i = 0; i < count; i++) {
+            result = expand(fixture.obj, fixture.path);
+          }
+          assert.equal(result, 'found');
+        };
+
+        for (const fixture of fixtures) {
+          run(fixture, 100);
+        }
+
+        // Alternate direction to reduce bias from warmup and machine load.
+        for (let round = 0; round < 5; round++) {
+          const order = round % 2 === 0 ? [0, 1, 2] : [2, 1, 0];
+          for (const index of order) {
+            let count = 1;
+            let elapsed;
+            do {
+              const start = perfHooks.performance.now();
+              run(fixtures[index], count);
+              elapsed = perfHooks.performance.now() - start;
+              if (elapsed < 10) {
+                count *= 2;
+              }
+            } while (elapsed < 10);
+            samples[index].push(elapsed / count);
+          }
+        }
+
+        const medians = samples.map(values => values.sort((a, b) => a - b)[2]);
+        for (let i = 1; i < sizes.length; i++) {
+          const growth = medians[i] / medians[i - 1];
+          assert.ok(
+            growth < 10,
+            `${syntax} path size grew 4x, but time per call grew ${growth.toFixed(2)}x: ${JSON.stringify(medians)} ms/call`
+          );
+        }
+        const totalGrowth = medians[2] / medians[0];
+        assert.ok(
+          totalGrowth < 64,
+          `${syntax} path size grew 16x, but time per call grew ${totalGrowth.toFixed(2)}x: ${JSON.stringify(medians)} ms/call`
+        );
+      });
+    }
+  });
+
+  describe('retained memory', () => {
+    for (const scenario of ['input objects', 'distinct paths']) {
+      it(`should release memory after expanding ${scenario}`, async function () {
+        this.timeout(15000);
+
+        const session = new inspector.Session();
+        session.connect();
+        const collect = async () => {
+          await new Promise((resolve, reject) => {
+            session.post('HeapProfiler.collectGarbage', error => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(undefined);
+              }
+            });
+          });
+          return process.memoryUsage().heapUsed;
+        };
+        const runBatch = (offset, count) => {
+          for (let i = offset; i < offset + count; i++) {
+            if (scenario === 'input objects') {
+              const obj = { nested: { value: i, payload: Array(4096).fill(i) } };
+              assert.equal(expand(obj, 'nested.value'), i);
+            } else {
+              const key = `sync_key${i}_${'x'.repeat(4096)}`;
+              assert.equal(expand({ data: { [key]: i } }, `data.${key}`), i);
+            }
+          }
+        };
+
+        try {
+          // Warm the expansion and collection paths before taking the baseline.
+          runBatch(0, 200);
+          await collect();
+          const baseline = await collect();
+          const retained = [];
+          for (let batch = 0; batch < 3; batch++) {
+            runBatch(200 + batch * 500, 500);
+            retained.push(await collect());
+          }
+
+          const growth = retained[2] - baseline;
+          const allowance = 2 * 1024 * 1024;
+          assert.ok(
+            growth < allowance,
+            `${scenario} retained ${growth} bytes after 1500 calls and garbage collection; allowance: ${allowance} bytes; baseline: ${baseline}; samples: ${JSON.stringify(retained)}`
+          );
+        } finally {
+          session.disconnect();
+        }
+      });
+    }
+  });
+
   describe('large data structures', () => {
     it('should handle large arrays', () => {
-      const arr = Array(100000).fill(0).map((_, i) => i);
+      const arr = Array(100000)
+        .fill(0)
+        .map((_, i) => i);
       const obj = { arr };
 
       assert.equal(expand(obj, 'arr.99999'), 99999);
@@ -120,7 +246,9 @@ describe('sync performance', () => {
         },
         nested: {
           get costly() {
-            return Array(100000).fill(0).reduce((a, b) => a + b, 0);
+            return Array(100000)
+              .fill(0)
+              .reduce((a, b) => a + b, 0);
           }
         }
       };

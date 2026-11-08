@@ -109,7 +109,7 @@ describe('expand', () => {
   });
 
   it('should support return default when options.isValid returns false', () => {
-    const fixture = { foo: { bar: { baz: 'qux' }, 'a.b.c': 'xyx', yyy: 'zzz' } };
+    const fixture = { foo: { 'bar': { baz: 'qux' }, 'a.b.c': 'xyx', 'yyy': 'zzz' } };
     const options = val => {
       return { default: val, isValid: prop => prop !== 'bar' && prop !== 'a.b.c' };
     };
@@ -174,7 +174,7 @@ describe('expand', () => {
   });
 
   it('should support escaped dots', () => {
-    assert.deepStrictEqual(expand({ 'a.b': 'a', b: { c: 'd' } }, 'a\\.b'), 'a');
+    assert.deepStrictEqual(expand({ 'a.b': 'a', 'b': { c: 'd' } }, 'a\\.b'), 'a');
     assert.deepStrictEqual(expand({ 'a.b': { b: { c: 'd' } } }, 'a\\.b.b.c'), 'd');
   });
 

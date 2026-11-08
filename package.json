@@ -17,7 +17,8 @@
     "cover": "nyc --all --reporter=text --reporter=html --include=src npm run test",
     "eslint": "npx eslint --ext .ts .",
     "test": "mocha --import=tsx \"test/**/*.test.ts\" --exit",
-    "tsup": "npm run clean && npx tsup"
+    "tsup": "npm run clean && npx tsup",
+    "verb": "pnpm --package=verbose/verb#dev --package=verb-generate-readme dlx verb"
   },
   "module": "dist/index.mjs",
   "main": "dist/index.js",
@@ -60,6 +61,7 @@
     "eslint": "^10.5.0",
     "globals": "^17.6.0",
     "gulp-format-md": "^2.0.0",
+    "jiti": "^2.7.0",
     "mocha": "^11.7.6",
     "nyc": "^18.0.0",
     "prettier": "^3.8.4",

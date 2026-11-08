@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict';
 import { expand } from '~/expand';
 
@@ -9,7 +8,7 @@ describe('edge-cases', () => {
       const longPath = segments.join('.');
 
       // Create deeply nested object
-      const obj = { };
+      const obj = {};
       let current = obj;
 
       for (let i = 0; i < segments.length - 1; i++) {

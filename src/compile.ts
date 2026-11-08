@@ -21,43 +21,54 @@ export interface Options {
 }
 
 export const compile = (ast: Node, data: Record<string, unknown> = {}, options: Options = {}): unknown => {
-  const orig = { ...data };
-  let context: unknown = orig;
-  let prev: unknown = context;
-  const segments: PropertyKey[] = [];
-  const fns = options.helpers ? { ...helpers, ...options.helpers } : helpers;
+  const orig = Array.isArray(data) ? data : { ...data };
+  let context = orig;
+  let prev = context;
+  let selectionDepth = 0;
+  let nodeCache;
+  let siblingCache;
+
+  const skipped = new Set();
+  const segments = [];
+  const fns = options.helpers || helpers;
+
   const resolveValue = (target: unknown, prop: PropertyKey, value: unknown): unknown => {
+    if (typeof options.resolve !== 'function') {
+      return value;
+    }
+
     const index = segments.push(prop) - 1;
-    return options.resolve?.(target, prop, value, { segments, index }) ?? value;
+    return options.resolve(target, prop, value, { segments, index });
   };
 
-  const resolve = (node: Node): void => {
-    if (node.skip || node.type === 'separator') {
+  const resolveNode = (node: Node): void => {
+    if (node.skip || skipped.has(node) || ['separator', 'left_bracket', 'right_bracket'].includes(node.type)) {
       return;
     }
 
-    if (context === undefined) {
+    if (context == null) {
+      context = undefined;
       return;
     }
 
     if (node.type === 'paren') {
-      const args: unknown[] = [];
+      const args = [];
 
-      for (let i = 1; i < node.nodes!.length - 1; i++) {
-        const child = node.nodes![i];
+      for (let i = 1; i < node.nodes.length - 1; i++) {
+        const child = node.nodes[i];
 
         switch (child.type) {
           case 'integer':
             args.push(Number(child.value));
             break;
           case 'quoted':
-            args.push(unquote(child.value!));
+            args.push(unquote(child.value));
             break;
           case 'symbol':
-            args.push(Symbol.for(child.value!));
+            args.push(Symbol.for(child.value));
             break;
           case 'ident':
-            args.push(expand(context, child.value!));
+            args.push(expand(context, child.value));
             break;
           default: {
             break;
@@ -71,22 +82,38 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
     if (node.nodes) {
       if (node.type !== 'root') {
-        const inner = node.nodes.slice(1, -1);
+        let structure = selectionDepth > 0 ? nodeCache?.get(node) : undefined;
 
-        if (inner.some(n => n.value === ' ')) {
+        if (!structure) {
+          const inner = node.nodes.slice(1, -1);
+          structure = {
+            inner,
+            hasSpace: inner.some(n => n.value === ' '),
+            hasBracket: node.type === 'bracket' && inner.some(n => n.type === 'bracket')
+          };
+
+          if (selectionDepth > 0) {
+            nodeCache ??= new Map();
+            nodeCache.set(node, structure);
+          }
+        }
+
+        const inner = structure.inner;
+
+        if (structure.hasSpace) {
           try {
-            const text = inner.map(n => n.value).join('');
-            resolve({ type: 'ident', value: evaluate(text, data) });
+            const text = (structure.text ??= inner.map(n => n.value).join(''));
+            resolveNode({ type: 'ident', value: evaluate(text, data) });
             return;
           } catch {}
         }
 
         if (inner.length === 1 && inner[0].type === 'ident') {
-          resolve(inner[0]);
+          resolveNode(inner[0]);
           return;
         }
 
-        if (node.type === 'bracket' && inner.some(n => n.type === 'bracket')) {
+        if (structure.hasBracket) {
           const value = expand(orig, node.output.slice(1, -1), options);
 
           if (value === undefined) {
@@ -95,12 +122,13 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
           }
 
           prev = context;
-          context = resolveValue(context, value, context?.[value]);
+          const raw = context?.[value];
+          context = options.resolve ? resolveValue(context, value, raw) : raw;
           return;
         }
       }
 
-      node.nodes.forEach(child => resolve(child));
+      node.nodes.forEach(child => resolveNode(child));
       return;
     }
 
@@ -108,24 +136,26 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
       prev = context;
 
       for (const symbol of Object.getOwnPropertySymbols(context)) {
-        if (symbol === node.symbol || symbol.toString() === node.symbol!.toString()) {
-          context = resolveValue(context, symbol, context[symbol]);
+        if (symbol === node.symbol || symbol.toString() === node.symbol.toString()) {
+          const raw = context[symbol];
+          context = options.resolve ? resolveValue(context, symbol, raw) : raw;
           return;
         }
       }
 
-      const symbol = node.symbol || Symbol.for(node.value!);
-      context = resolveValue(context, symbol, context[symbol]);
+      const symbol = node.symbol || Symbol.for(node.value);
+      const raw = context[symbol];
+      context = options.resolve ? resolveValue(context, symbol, raw) : raw;
       return;
     }
 
     if (node.type === 'ident') {
-      if (!isSafeKey(node.value!)) {
+      if (!isSafeKey(node.value)) {
         context = undefined;
         return;
       }
 
-      let value = node.value!;
+      let value = node.value;
 
       if (node.parent?.type === 'bracket') {
         let temp = orig;
@@ -138,19 +168,32 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
         if (typeof value === 'number') {
           prev = context;
-          context = resolveValue(context, value, context[value]);
+          const raw = context[value];
+          context = options.resolve ? resolveValue(context, value, raw) : raw;
           return;
         }
 
         if (isObject(value)) {
-          const siblings = node.siblings!.filter(n => ['ident', 'quoted', 'symbol'].includes(n.type));
-          let index = siblings.indexOf(node) + 1;
+          let structure = selectionDepth > 0 ? siblingCache?.get(node) : undefined;
+
+          if (!structure) {
+            const siblings = node.siblings.filter(n => ['ident', 'quoted', 'symbol'].includes(n.type));
+            structure = { siblings, index: siblings.indexOf(node) + 1 };
+
+            if (selectionDepth > 0) {
+              siblingCache ??= new Map();
+              siblingCache.set(node, structure);
+            }
+          }
+
+          const siblings = structure.siblings;
+          let index = structure.index;
           let next = siblings[index];
 
           while (isObject(value) && isObject(next) && temp) {
-            const key = next.value!;
+            const key = next.value;
             value = expand(value, key);
-            next.skip = true;
+            skipped.add(next);
             temp = expand(temp, value);
             next = siblings[++index];
           }
@@ -159,7 +202,9 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
 
       const target = context;
       prev = target;
-      context = resolveValue(target, value, target?.[value]);
+
+      const raw = target?.[value];
+      context = options.resolve ? resolveValue(target, value, raw) : raw;
 
       if (context !== undefined) {
         if (typeof context === 'function') {
@@ -169,11 +214,10 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
         return;
       }
 
-      context = target;
       const helper = fns[value];
 
       if (typeof helper === 'function') {
-        context = helper(context);
+        context = helper(target);
       }
 
       if (context === undefined && options.strict === true) {
@@ -184,32 +228,79 @@ export const compile = (ast: Node, data: Record<string, unknown> = {}, options: 
     }
 
     if (node.type === 'integer' || node.type === 'number') {
-      if (node.parent.type === 'bracket') {
-        const index = node.parent.nodes.indexOf(node);
-        const next = node.parent.nodes[index + 1];
-        const after = node.parent.nodes[index + 2];
+      prev = context;
+      let key = Number(node.value);
 
-        if (next?.type === 'range' && (after?.type === 'integer' || after?.type === 'number')) {
-          next.skip = true;
-          after.skip = true;
-          const start = Number(node.value);
-          const end = Number(after.value);
-          const range = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-          context = range.map(i => resolveValue(context, i, context[i]));
-          return;
-        }
+      if (Array.isArray(context) && Number.isInteger(key) && key < 0) {
+        key += context.length;
       }
 
-      prev = context;
-      const key = Number(node.value);
-      context = resolveValue(context, key, context[key]);
+      const raw = context[key];
+      context = options.resolve ? resolveValue(context, key, raw) : raw;
       return;
     }
 
     if (node.type === 'quoted') {
       prev = context;
-      const key = node.match![2];
-      context = resolveValue(context, key, context[key]);
+      const key = node.match[2];
+      const raw = context[key];
+      context = options.resolve ? resolveValue(context, key, raw) : raw;
+    }
+  };
+
+  const resolve = (node: Node): void => {
+    if (node.skip || node.type === 'separator') {
+      return;
+    }
+
+    if (node.type === 'root') {
+      node.nodes.forEach(child => resolve(child));
+      return;
+    }
+
+    const inner = node.type === 'bracket' ? node.nodes.slice(1, -1) : [];
+    const wildcard = inner.length === 1 && inner[0].type === 'wildcard';
+    const range =
+      inner.length === 3 &&
+      inner[1].type === 'range' &&
+      ['integer', 'number'].includes(inner[0].type) &&
+      ['integer', 'number'].includes(inner[2].type);
+
+    const apply = (value, depth) => {
+      if (depth > 0) {
+        return Array.isArray(value) ? value.map(item => apply(item, depth - 1)) : undefined;
+      }
+
+      if (wildcard || range) {
+        if (value == null || (wildcard && !Array.isArray(value))) {
+          return undefined;
+        }
+
+        const start = wildcard ? 0 : Number(inner[0].value);
+        const end = wildcard ? value.length - 1 : Number(inner[2].value);
+        const selected = new Array(Math.max(0, end - start + 1));
+        const target = Object(value);
+
+        for (let i = start; i <= end; i++) {
+          if (i in target) {
+            const raw = value[i];
+            selected[i - start] = options.resolve ? resolveValue(value, i, raw) : raw;
+          }
+        }
+
+        return selected;
+      }
+
+      context = value;
+      skipped.clear();
+      resolveNode(node);
+      return context;
+    };
+
+    context = apply(context, selectionDepth);
+
+    if (wildcard || range) {
+      selectionDepth++;
     }
   };
 

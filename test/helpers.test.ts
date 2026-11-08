@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict';
 import { expand } from '~/expand';
 
@@ -28,7 +27,10 @@ describe('helpers', () => {
     });
 
     it('should work with Map', () => {
-      const map = new Map([['a', 1], ['b', 2]]);
+      const map = new Map([
+        ['a', 1],
+        ['b', 2]
+      ]);
       assert.deepStrictEqual(expand({ map }, 'map.first'), ['a', 1]);
     });
 
@@ -75,7 +77,10 @@ describe('helpers', () => {
     });
 
     it('should work with Map', () => {
-      const map = new Map([['a', 1], ['b', 2]]);
+      const map = new Map([
+        ['a', 1],
+        ['b', 2]
+      ]);
       assert.deepStrictEqual(expand({ map }, 'map.last'), ['b', 2]);
     });
 
@@ -139,8 +144,8 @@ describe('helpers', () => {
     });
 
     it('should handle null and undefined', () => {
-      assert.equal(expand({ val: null }, 'val.size'), 1);
-      assert.equal(expand({ val: undefined }, 'val.size'), 1);
+      assert.equal(expand({ val: null }, 'val.size'), undefined);
+      assert.equal(expand({ val: undefined }, 'val.size'), undefined);
     });
 
     it('should handle numbers', () => {
@@ -179,10 +184,7 @@ describe('helpers', () => {
   describe('combined helpers', () => {
     it('should work with chained helpers', () => {
       const obj = {
-        users: [
-          { friends: ['alice', 'bob', 'charlie'] },
-          { friends: ['david', 'eve'] }
-        ]
+        users: [{ friends: ['alice', 'bob', 'charlie'] }, { friends: ['david', 'eve'] }]
       };
 
       assert.equal(expand(obj, 'users.first.friends.size'), 3);
@@ -193,10 +195,7 @@ describe('helpers', () => {
 
     it('should handle helpers with empty results', () => {
       const obj = {
-        users: [
-          { friends: [] },
-          { friends: ['david', 'eve'] }
-        ]
+        users: [{ friends: [] }, { friends: ['david', 'eve'] }]
       };
 
       assert.equal(expand(obj, 'users.first.friends.first'), undefined);

@@ -26,7 +26,7 @@ interface Location {
 export const parse = (input = '', options: ParseOptions = {}) => {
   if (!utils.isObject(options)) options = {};
 
-  const loc: Location = { index: 0, line: 1, col: 0, row: 1 };
+  const loc = { index: 0, line: 1, col: 0, row: 1 };
   let pos = location(loc);
 
   const str = String(input);
@@ -36,12 +36,12 @@ export const parse = (input = '', options: ParseOptions = {}) => {
   const stack = [ast];
   const stash = [];
 
-  const tokens: Token[] = [];
+  const tokens = [];
   let remaining = str;
   let block = ast;
-  let token: Token | undefined;
-  let match: RegExpExecArray | null;
-  let prev: Node | undefined;
+  let token;
+  let match;
+  let prev;
 
   let separator = /^\./;
   let IDENTITY = IDENT;
@@ -73,7 +73,7 @@ export const parse = (input = '', options: ParseOptions = {}) => {
 
   const drop = () => {
     if (stash.length) {
-      block.push(stash.shift() as Node);
+      block.push(stash.shift());
     }
   };
 
@@ -191,6 +191,11 @@ export const parse = (input = '', options: ParseOptions = {}) => {
      */
 
     if (block.type === 'bracket' && (token = scan(RANGE, 'range'))) {
+      push(new Node(token));
+      return;
+    }
+
+    if (block.type === 'bracket' && (token = scan(/^\*(?=\])/, 'wildcard'))) {
       push(new Node(token));
       return;
     }
