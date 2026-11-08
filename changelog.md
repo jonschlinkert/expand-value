@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-11-08
+
+Add wildcard traversal, negative array indexes, and verb tooling.
+
+### Added
+
+- Parse `[*]` and apply subsequent paths across wildcard and range selections.
+- Add `verb` script for building docs.
+
+### Changed
+
+- Cache selection structure and track skipped nodes without mutating the AST.
+
+### Fixed
+
+- Preserve array inputs and sparse selections; support negative array indexes.
+- Preserve nullish resolver results and use custom helpers without merging defaults.
+- Stop traversal at nullish values and preserve unresolved helper lookups.
+
 ## [5.0.0] - 2026-07-10
 
 ### Added
